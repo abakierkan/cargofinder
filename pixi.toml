@@ -1,0 +1,28 @@
+[workspace]
+name = "cargofinder"
+version = "0.1.0"
+description = "Encapsulin cargo candidate discovery tool"
+authors = ["Abdulbaki Erkan <abakierkan@users.noreply.github.com>"]
+channels = ["conda-forge", "bioconda"]
+platforms = ["linux-64"]
+
+[tasks]
+test = "pytest"
+test-unit = "pytest -m 'not external'"
+lint = "ruff check src/ tests/"
+format = "ruff format --check src/ tests/"
+
+[dependencies]
+python = ">=3.10,<3.13"
+numpy = ">=1.24.0"
+pandas = ">=2.0.0"
+matplotlib = ">=3.7.0"
+pyhmmer = ">=0.10.0"
+pyrodigal = ">=3.0.0"
+mmseqs2 = ">=15.6b455"
+pytest = ">=7.0.0"
+ruff = ">=0.4.0"
+hatchling = "*"
+
+[pypi-dependencies]
+cargofinder = { path = ".", editable = true }
