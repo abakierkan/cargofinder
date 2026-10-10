@@ -1,0 +1,14 @@
+##gff-version 3
+thermotoga_slice	Pyrodigal	CDS	1	345	.	-	0	ID=thermotoga_slice_0001;product=Pyrodigal predicted protein thermotoga_slice_0001
+thermotoga_slice	Pyrodigal	CDS	342	1085	.	-	0	ID=thermotoga_slice_0002;product=Pyrodigal predicted protein thermotoga_slice_0002
+thermotoga_slice	Pyrodigal	CDS	1149	1622	.	+	0	ID=thermotoga_slice_0003;product=Pyrodigal predicted protein thermotoga_slice_0003
+thermotoga_slice	Pyrodigal	CDS	1665	1880	.	+	0	ID=thermotoga_slice_0004;product=Pyrodigal predicted protein thermotoga_slice_0004
+thermotoga_slice	Pyrodigal	CDS	1921	2925	.	+	0	ID=thermotoga_slice_0005;product=Pyrodigal predicted protein thermotoga_slice_0005
+thermotoga_slice	Pyrodigal	CDS	2968	3069	.	+	0	ID=thermotoga_slice_0006;product=Pyrodigal predicted protein thermotoga_slice_0006
+thermotoga_slice	Pyrodigal	CDS	3138	3653	.	+	0	ID=thermotoga_slice_0007;product=Pyrodigal predicted protein thermotoga_slice_0007
+thermotoga_slice	Pyrodigal	CDS	3702	4481	.	-	0	ID=thermotoga_slice_0008;product=Pyrodigal predicted protein thermotoga_slice_0008
+thermotoga_slice	Pyrodigal	CDS	4496	4840	.	-	0	ID=thermotoga_slice_0009;product=Pyrodigal predicted protein thermotoga_slice_0009
+thermotoga_slice	Pyrodigal	CDS	5104	5850	.	+	0	ID=thermotoga_slice_0010;product=Pyrodigal predicted protein thermotoga_slice_0010
+thermotoga_slice	Pyrodigal	CDS	5855	7129	.	+	0	ID=thermotoga_slice_0011;product=Pyrodigal predicted protein thermotoga_slice_0011
+thermotoga_slice	Pyrodigal	CDS	7084	7872	.	+	0	ID=thermotoga_slice_0012;product=Pyrodigal predicted protein thermotoga_slice_0012
+thermotoga_slice	Pyrodigal	CDS	7872	8000	.	+	0	ID=thermotoga_slice_0013;product=Pyrodigal predicted protein thermotoga_slice_0013
