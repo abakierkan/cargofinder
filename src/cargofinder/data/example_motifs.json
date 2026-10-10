@@ -1,0 +1,14 @@
+{
+  "T_maritima_Flp_TP": {
+    "regex": "DLGIRKL$",
+    "citation": "Sutter et al. (2008) Nat. Nanotechnol. 3:397-404; PDB: 3DKT",
+    "description": "C-terminal 7-mer targeting peptide of Thermotoga maritima ferritin-like protein (TM0786) binding to TM0785 encapsulin shell inner pocket.",
+    "verified": true
+  },
+  "Generic_hydrophobic_c_terminus": {
+    "regex": "[LIVMF][GSA]?[LIVMF][RKH]{1,2}[LIVMF]$",
+    "citation": "Giessen & Silver (2017) Nat. Microbiol. 2:17029; Sutter et al. (2008)",
+    "description": "General hydrophobic anchor consensus with basic/flanking residues observed in Family 1 encapsulin cargo targeting peptides.",
+    "verified": false
+  }
+}
