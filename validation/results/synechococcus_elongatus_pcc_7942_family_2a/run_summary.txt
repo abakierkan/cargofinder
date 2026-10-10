@@ -1,0 +1,19 @@
+===========================================================
+cargofinder: Encapsulin Cargo Candidate Discovery Summary
+===========================================================
+Genome ID:           synechococcus_elongatus_pcc_7942_family_2a
+Total Genes:         10
+Shells Detected:     0
+Candidates Ranked:   0
+Distinct Clusters:   0
+-----------------------------------------------------------
+Window Size:         +/- 5 genes
+Tail Length:         20 residues
+Max Operon Gap:      150 bp
+E-value Cutoff:      1e-05
+-----------------------------------------------------------
+cargofinder:         v0.1.0
+pyhmmer:             v0.12.3
+pyrodigal:           v3.7.1
+Python:              3.12.15
+===========================================================

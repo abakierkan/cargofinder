@@ -1,0 +1,10 @@
+organism	assembly_accession	shell_locus_tag	known_cargo_locus_tag	cargo_name_description	cargo_location_type	literature_reference
+Thermotoga maritima MSB8	GCF_000008545.1	TM0785	TM0786	Ferritin-like protein (Flp)	adjacent_operon	Sutter M et al. (2008) Nat Struct Mol Biol 15:939-947; Sutter M et al. (2008) Nat Nanotechnol 3:397-404
+Mycobacterium tuberculosis H37Rv	GCF_000195955.2	Rv0798c	Rv0799c	Dye-decolorizing peroxidase (DyP/DypB)	adjacent_operon	Contreras H et al. (2014) J Biol Chem 289:18279-18289
+Myxococcus xanthus DK 1622	GCF_000012685.1	MXAN_3556	MXAN_3557	Ferritin-like protein (EncB)	adjacent_operon	McHugh CA et al. (2014) EMBO J 33:1896-1911
+Myxococcus xanthus DK 1622 (Distal EncC)	GCF_000012685.1	MXAN_3556	MXAN_4464	Ferritin-like protein (EncC)	distal_genomic	McHugh CA et al. (2014) EMBO J 33:1896-1911
+Myxococcus xanthus DK 1622 (Distal EncD)	GCF_000012685.1	MXAN_3556	MXAN_2410	Ferric reductase-like (EncD)	distal_genomic	McHugh CA et al. (2014) EMBO J 33:1896-1911
+Pyrococcus furiosus DSM 3638	GCF_000007305.1	PF1191	PF1192	Ferritin-like protein (Flp)	adjacent_operon	Akita F et al. (2007) J Biochem 142:609-615
+Rhodococcus erythropolis PR4	GCF_000020125.1	RER_59900	RER_59910	Dye-decolorizing peroxidase (DypB)	adjacent_operon	McHugh CA et al. (2014) EMBO J 33:1896-1911
+Rhodococcus jostii RHA1 (Negative Control)	GCF_000014565.1	ro02408	ro02407	DypB homologue (lacks encapsulin shell)	negative_unencapsulated	Rahmanpour R & Bugg TD (2013) FEBS J 280:2097-2104; PDB 3VEG
+Synechococcus elongatus PCC 7942 (Family 2A)	GCF_000012525.1	Synpcc7942_B2662	Synpcc7942_B2661	Cysteine desulfurase (IscS-like)	family_2a_operon	Cassidy J et al. (2018) FEBS Open Bio 8:226; Nichols RJ et al. (2017) Elife 6:e27542
