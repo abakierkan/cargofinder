@@ -96,7 +96,7 @@ $$\text{Score} = w_\text{distance} \cdot S_\text{distance} + w_\text{operon} \cd
 | Component | Default Weight | Formula / Metric | Biological Rationale |
 | :--- | :---: | :--- | :--- |
 | **Synteny Distance ($S_\text{distance}$)** | `0.35` | $\max\left(0, 1 - \frac{\|\Delta\text{genes}\| - 1}{W}\right)$ | Immediate flanking neighbors receive 1.0; score decays linearly across window $W$. |
-| **Operon Likelihood ($S_\text{operon}$)** | `0.25` | $0.5 \cdot \mathbf{1}_\text{same\_strand} + 0.5 \cdot \max\left(0, 1 - \frac{\Delta\text{bp}}{150}\right)$ | Co-orientation and overlapping/short intergenic gap indicative of co-transcription. |
+| **Operon Likelihood ($S_\text{operon}$)** | `0.25` | $0.5 \cdot \mathbf{1}_\text{strand} + 0.5 \cdot \max\left(0, 1 - \frac{\Delta\text{bp}}{150}\right)$ | Co-orientation and overlapping/short intergenic gap indicative of co-transcription. |
 | **Terminal Peptide ($S_\text{tail}$)** | `0.25` | $0.35 \bar{H} + 0.25 f_\text{GS} + 0.20 \hat{H} + 0.20 M_\text{motif}$ | Hydropathy ($\bar{H}$), Gly/Ser linker flexibility ($f_\text{GS}$), Shannon entropy ($\hat{H}$), and motif regex ($M_\text{motif}$). |
 | **Cluster Recurrence ($S_\text{recurrence}$)** | `0.15` | $\min\left(1.0, \frac{N_\text{cluster} - 1}{3}\right)$ | Rewards homologous families appearing adjacent to encapsulin shells in multiple systems. |
 

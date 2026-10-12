@@ -138,8 +138,8 @@ $$w_\text{dist} + w_\text{operon} + w_\text{tail} + w_\text{recurrence} = 1.0, \
 
 | Metric Component | Mathematical Formulation | Biological Rationale |
 | :--- | :--- | :--- |
-| **Synteny Distance ($S_\text{dist}$)** | $S_\text{dist} = \max\left(0, 1 - \frac{|\Delta\text{genes}| - 1}{W}\right)$ | Immediate flanking neighbors ($|\Delta\text{genes}|=1$) receive $1.0$; score decays linearly to 0 at window edge $W$. |
-| **Operon Likelihood ($S_\text{operon}$)** | $S_\text{operon} = 0.5 \cdot \mathbf{1}_\text{strand} + 0.5 \cdot \max\left(0, 1 - \frac{\max(0, \Delta\text{bp})}{\text{gap}_\text{max}}\right)$ | Rewrites operon co-transcription: $50\%$ assigned for shared strand; $50\%$ scaled by intergenic gap ($\le 150\text{ bp}$). |
+| **Synteny Distance ($S_\text{dist}$)** | $S_\text{dist} = \max\left(0, 1 - \frac{\|\Delta\text{genes}\| - 1}{W}\right)$ | Immediate flanking neighbors ($\|\Delta\text{genes}\|=1$) receive $1.0$; score decays linearly to 0 at window edge $W$. |
+| **Operon Likelihood ($S_\text{operon}$)** | $S_\text{operon} = 0.5 \cdot \mathbf{1}_\text{strand} + 0.5 \cdot \max\left(0, 1 - \frac{\max(0, \Delta\text{bp})}{\text{gap}_\text{max}}\right)$ | Rewards operon co-transcription: 50% assigned for shared strand; 50% scaled by intergenic gap ($\le 150\text{ bp}$). |
 | **Terminal Peptide ($S_\text{tail}$)** | $S_\text{tail} = 0.35 \cdot \bar{H} + 0.25 \cdot f_\text{GS} + 0.20 \cdot \hat{H} + 0.20 \cdot M_\text{motif}$ | Combines hydrophobic patch intensity, linker flexibility, complexity filter, and regex motif confirmation. |
 | **Cluster Recurrence ($S_\text{recurrence}$)** | $S_\text{recurrence} = \min\left(1.0, \frac{N_\text{cluster} - 1}{3}\right)$ | Rewards genes whose homologues co-occur next to encapsulin shells in multiple genomes or loci. |
 
