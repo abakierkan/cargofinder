@@ -1,0 +1,2 @@
+gene_id	contig_id	start	end	strand	length_aa	profile_name	profile_acc	evalue	bitscore
+NC_008095.1_3484	NC_008095.1	4140372	4141235	-1	287	Linocin_M18	PF04454.19	8.671947960968929e-68	226.74

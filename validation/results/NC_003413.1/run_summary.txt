@@ -1,0 +1,22 @@
+===========================================================
+cargofinder: Encapsulin Cargo Candidate Discovery Summary
+===========================================================
+Genome ID:           NC_003413.1
+Total Genes:         2102
+Shells Detected:     1
+Candidates Ranked:   10
+Distinct Clusters:   10
+-----------------------------------------------------------
+Window Size:         +/- 5 genes
+Tail Length:         20 residues
+Max Operon Gap:      150 bp
+E-value Cutoff:      1e-05
+Clustering:          skipped (one shell: recurrence is not informative)
+Profiles:            PF04454.19
+-----------------------------------------------------------
+cargofinder:         v0.1.0
+pyhmmer:             v0.12.3
+pyrodigal:           v3.7.1
+MMseqs2:             not used
+Python:              3.12.15
+===========================================================

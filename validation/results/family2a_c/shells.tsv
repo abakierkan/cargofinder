@@ -1,0 +1,2 @@
+gene_id	contig_id	start	end	strand	length_aa	profile_name	profile_acc	evalue	bitscore
+NC_007595.1_0008	NC_007595.1	5275	6195	-1	306	SrpI-like	PF19307.6	4.501807645308268e-108	351.1

@@ -1,0 +1,44 @@
+{
+  "timestamp_utc": "2026-10-31T12:15:04.668388+00:00",
+  "cargofinder_version": "0.1.0",
+  "environment": {
+    "python": "3.12.15",
+    "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.43",
+    "pyhmmer": "0.12.3",
+    "pyrodigal": "3.7.1",
+    "mmseqs2": "not used"
+  },
+  "parameters": {
+    "window_size": 5,
+    "tail_length": 20,
+    "max_operon_gap_bp": 150,
+    "evalue_cutoff": 1e-05,
+    "min_shell_length_aa": 150,
+    "mmseqs_min_seq_id": 0.3,
+    "mmseqs_coverage": 0.8,
+    "termini": "c",
+    "scoring_weights": {
+      "w_distance": 0.35,
+      "w_operon": 0.25,
+      "w_tail_features": 0.25,
+      "w_recurrence": 0.15
+    }
+  },
+  "profiles": [
+    {
+      "file": "PF04454.hmm",
+      "name": "Linocin_M18",
+      "acc": "PF04454.19",
+      "sha256": "0df66d414cd7c6ddb323d1b6e676e3ac3ed4149de8b9276db4b01a7e8320b0e4"
+    }
+  ],
+  "clustering": "not run",
+  "counts": {
+    "genome_id": "NC_007595.1",
+    "total_genes": 55,
+    "unmatched_gff_features": 0,
+    "shells_detected": 0,
+    "candidates_extracted": 0,
+    "distinct_clusters": 0
+  }
+}
