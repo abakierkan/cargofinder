@@ -1,0 +1,6 @@
+{
+  "w_distance": 0.35,
+  "w_operon": 0.25,
+  "w_tail_features": 0.25,
+  "w_recurrence": 0.15
+}
