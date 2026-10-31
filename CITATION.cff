@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use cargofinder in your research, please cite it as below."
+title: "cargofinder: candidate cargo discovery and ranking for encapsulin nanocompartments"
+authors:
+  - family-names: "Erkan"
+    given-names: "Abdulbaki"
+    # orcid: "https://orcid.org/XXXX-XXXX-XXXX-XXXX"  # TODO: add your ORCID
+version: "0.1.0"
+license: "MIT"
+repository-code: "https://github.com/abakierkan/cargofinder"
+abstract: "A transparent, rule-based tool that ranks genes near encapsulin shell genes as candidate cargo, using synteny, operon structure, terminal peptide features and recurrence across genomes."
