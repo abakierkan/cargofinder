@@ -1,0 +1,8 @@
+{
+  "T_maritima_Flp_TP": {
+    "regex": "DLGIRKL$",
+    "citation": "Native C-terminus of T. maritima Flp (TM0786) in the NCBI annotation. C-terminal cargo tags: Sutter et al. (2008) Nat Struct Mol Biol 15:939-947, doi:10.1038/nsmb.1473; Cassidy-Amstutz et al. (2016) Biochemistry 55:3461-3468, doi:10.1021/acs.biochem.6b00294.",
+    "description": "Example only. It is the last 7 residues of one protein, not a consensus; check the exact peptide boundary against the papers before relying on it. Not used in validation.",
+    "verified": false
+  }
+}
