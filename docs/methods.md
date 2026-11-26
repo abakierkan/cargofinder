@@ -142,7 +142,7 @@ encapsulin".
 **Consequences to keep in mind:**
 
 - In a single-shell run the recurrence term is a constant 0.03.
-- An adjacent same-strand operon gene therefore scores 0.63 before any tail signal. A high score mostly reflects position.
+- An adjacent same-strand operon gene therefore scores 0.53 before any tail signal. A high score still mostly reflects position.
 - Scores from single-genome and multi-genome runs are not comparable.
 - Sequence complexity is reported but not scored. We found no evidence that it should count in either direction.
 - `--termini both` uses the better terminus. It is off by default because signal peptides also make N-termini hydrophobic.
