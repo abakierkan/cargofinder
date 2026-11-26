@@ -349,6 +349,12 @@ def build_report(
     n_extra_cargo = (
         int(extra_shells["annotated_as_cargo"].sum()) if len(extra_shells) else 0
     )
+    from cargofinder.config import ScoringWeights, select_profiles
+
+    _w = ScoringWeights()
+    default_profiles = " + ".join(p.pfam_id for p in select_profiles())
+    floor = round(_w.w_distance + _w.w_operon + _w.w_recurrence * 0.2, 2)
+    floor_cargo = round(floor + _w.w_cargo_class, 2)
     missed = []
     n_outside = int((results["outcome_kind"] == "outside window").sum())
     if n_outside:
@@ -453,7 +459,8 @@ the run; do not edit them by hand.
 
 - Input: one complete NCBI replicon per organism, not the whole assembly, so other
   replicons were not screened. Genes were called with Pyrodigal.
-- Profile: PF04454 only, with default parameters and **no motif file**.
+- Profiles: the default set ({default_profiles}), with default parameters and
+  **no motif file**. Cargo class and phage marker profiles were present.
 - Truth: `validation/known_systems.tsv`, matched by locus tag via strand and stop
   coordinate. Ranks are within each shell's neighborhood.
 - Recall counts each cited cargo encoded as a separate gene and shown experimentally
@@ -623,15 +630,22 @@ over most of their length, so divergent or short cargo may not cluster.
 
 - The set is small and related systems count more than once, so these are not estimates
   of performance on new genomes.
-- Compare cargofinder with the adjacency-only column: the difference is what the
-  terminal peptide score adds on this set.
-- Parameters were not fitted to this set, but it was not blind either. The weights and
-  tail features were chosen with these systems in mind, and low complexity was removed
-  from the score after reviewing an earlier benchmark, because there was no evidence
-  for either direction. Treat tail-only results as optimistic.
-- Scores have a floor: an adjacent same-strand operon gene gets 0.63 before any tail
-  signal in a single-shell run. A high score mostly reflects position, not evidence of
-  encapsulation.
+- Compare cargofinder against each single-signal column: the difference is what
+  combining them buys on this set, which here is nothing, because cargo class and
+  the targeting signal each already rank every adjacent cargo first.
+- Parameters were not fitted to this set, but it was not blind either. The weights,
+  cargo classes and tail features were chosen with these systems in mind; low
+  complexity was dropped from the score after an earlier benchmark showed no
+  evidence either way, and the composition heuristic was cut from 0.25 to 0.05
+  after it underperformed here. Treat every single-signal column as optimistic.
+- Scores have a floor: an adjacent same-strand operon gene gets {floor} before any
+  cargo class or targeting signal in a single-shell run, and {floor_cargo} once a
+  known cargo class is recognised. A high score still partly reflects position, not
+  evidence of encapsulation.
+- Cargo class and targeting both depend on prior knowledge: a novel cargo class, or
+  a Family 2 candidate whose class is unrecognised, scores zero on the two
+  components that carry most of the weight. This benchmark cannot measure that
+  failure mode, because every system in it is already characterised.
 
 ## Inputs
 
