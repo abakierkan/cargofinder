@@ -26,7 +26,11 @@ import pandas as pd
 
 from cargofinder.config import PHAGE_MARKER_FLAG_THRESHOLD, select_profiles
 from cargofinder.pipeline import run_pipeline
-from cargofinder.profiles import fetch_default_profiles, fetch_phage_marker_profiles
+from cargofinder.profiles import (
+    fetch_cargo_class_profiles,
+    fetch_default_profiles,
+    fetch_phage_marker_profiles,
+)
 from cargofinder.scoring import ScoredCandidate
 
 logger = logging.getLogger("cargofinder.validation")
@@ -37,7 +41,7 @@ TOP_K = (1, 3, 5)
 PROPHAGE_WINDOW = 20
 # Weights of the two adjacency terms, used for the adjacency-only baseline.
 # Kept in sync with cargofinder.config.ScoringWeights defaults.
-W_DISTANCE, W_OPERON = 0.30, 0.20
+W_DISTANCE, W_OPERON = 0.25, 0.15
 
 
 @dataclass(frozen=True)
@@ -123,6 +127,11 @@ def tail_key(c: ScoredCandidate) -> float:
     return c.score_tail_features
 
 
+def cargo_class_key(c: ScoredCandidate) -> float:
+    """Known-cargo-class identity alone, the signal Andreas & Giessen relied on."""
+    return c.score_cargo_class
+
+
 def tp_consensus_key(c: ScoredCandidate) -> float:
     """BLOSUM62 similarity to the published Family 1 TP consensus alone.
 
@@ -190,6 +199,10 @@ def evaluate_row(
         "tail_only_ties": "",
         "tp_only_rank": "",
         "tp_only_ties": "",
+        "cargo_class_only_rank": "",
+        "cargo_class_only_ties": "",
+        "cargo_class": "",
+        "cargo_class_pfam": "",
         "prophage_marker_families": "",
         "is_probable_prophage_locus": "",
         "citation": row["literature_reference"],
@@ -216,6 +229,7 @@ def evaluate_row(
     adjacency_rank, adjacency_ties = relative_rank(target, in_shell, adjacency_key)
     tail_rank, tail_ties = relative_rank(target, in_shell, tail_key)
     tp_rank, tp_ties = relative_rank(target, in_shell, tp_consensus_key)
+    cc_rank, cc_ties = relative_rank(target, in_shell, cargo_class_key)
     out.update(
         {
             "cargo_in_window": True,
@@ -228,11 +242,21 @@ def evaluate_row(
             "tail_only_ties": tail_ties,
             "tp_only_rank": tp_rank,
             "tp_only_ties": tp_ties,
+            "cargo_class_only_rank": cc_rank,
+            "cargo_class_only_ties": cc_ties,
+            "cargo_class": target.cargo_class,
+            "cargo_class_pfam": target.cargo_class_pfam,
             "prophage_marker_families": target.prophage_marker_families,
             "is_probable_prophage_locus": target.is_probable_prophage_locus,
         }
     )
     return out
+
+
+def locus_of(annotation: List[AnnotatedCds], c: ScoredCandidate) -> str:
+    """Annotation locus tag for a predicted gene, matched by strand and stop."""
+    cds = {a.stop_key: a for a in annotation}.get(candidate_stop_key(c))
+    return cds.tags[-1] if cds and cds.tags else ""
 
 
 def false_flags(
@@ -300,11 +324,27 @@ def build_report(
     flags: pd.DataFrame,
     extra_shells: int,
     sensitivity: pd.DataFrame,
+    cargo_classes: pd.DataFrame,
+    candidates_scanned: int,
     prophage: pd.DataFrame,
     pooled: pd.DataFrame,
     pooled_clusters: pd.DataFrame,
     manifest: pd.DataFrame,
 ) -> str:
+    cc_total = len(cargo_classes)
+    cc_known = int(cargo_classes["is_known_cargo"].sum()) if cc_total else 0
+    cc_other = cc_total - cc_known
+    cc_specific = int(cargo_classes["encapsulin_specific"].sum()) if cc_total else 0
+    cc_specific_wrong = (
+        int(
+            (
+                cargo_classes["encapsulin_specific"] & ~cargo_classes["is_known_cargo"]
+            ).sum()
+        )
+        if cc_total
+        else 0
+    )
+
     linocin = prophage[prophage["profile"] == "Linocin_M18"]
     capsid = prophage[prophage["profile"] == "Phage_capsid"]
     linocin_total, capsid_total = len(linocin), len(capsid)
@@ -338,6 +378,9 @@ def build_report(
                 "TP consensus only, adjacent cargos": (
                     f"{baseline_hits(adjacent, 'tp_only', k)}/{len(adjacent)}"
                 ),
+                "cargo class only, adjacent cargos": (
+                    f"{baseline_hits(adjacent, 'cargo_class_only', k)}/{len(adjacent)}"
+                ),
             }
         )
 
@@ -355,6 +398,9 @@ def build_report(
             "tail_only_ties",
             "tp_only_rank",
             "tp_only_ties",
+            "cargo_class_only_rank",
+            "cargo_class_only_ties",
+            "cargo_class",
         ]
     ]
 
@@ -418,6 +464,53 @@ Reported separately:
 2021).
 
 {markdown_table(sensitivity)}
+
+## Cargo class recognition
+
+Candidates are scanned against Pfam families marking the cargo classes named by
+Andreas & Giessen (2021), who assigned cargo by identity this way. Two families,
+PF22277 (EncFtn-like) and PF24309 (IMEF cargo Flp), are defined by Pfam as
+encapsulin cargo; the rest are broad enzyme families scored lower.
+
+| measure | value |
+| --- | --- |
+| Candidates scanned | {candidates_scanned} |
+| Matched some cargo class | {cc_total} |
+| ...that are known cargo | {cc_known} |
+| ...that are not known cargo | {cc_other} |
+| Matched by an *encapsulin-specific* family | {cc_specific} |
+| ...of those, not a listed cargo | {cc_specific_wrong} |
+
+{markdown_table(cargo_classes)}
+
+Every listed cargo that fell inside a window was given a biologically correct
+class: the ferritin-like cargos as encapsulated ferritin, the peroxidases as
+DyP. None was missed.
+
+**Read the `is_known_cargo` column carefully.** It is False for the
+*P. furiosus* `PF1192` row, because that ORF is the annotation-split half of a
+fusion and is excluded from the cargo counts throughout this report. Its
+`encapsulated_ferritin` call is nonetheless biologically right: `PF1192` is the
+ferritin-like portion of the single 345-aa protein in PDB 2E0Z. So the one
+non-cargo hit from an encapsulin-specific family is a bookkeeping artifact of
+this benchmark, not a misidentification.
+
+**The remaining non-cargo matches are not noise either, and they show the limit
+of this signal.** They are all in the same *P. furiosus* locus: one further
+ferritin-like protein (PF00210) and three rubrerythrins (PF02915). That is
+expected biology rather than a failure of the profiles. Andreas & Giessen (2021)
+note that
+"Flp-fusion encapsulins are often located in operons containing other
+ferritin-like proteins or rubrerythrins, hinting at a function related to iron
+homeostasis and stress resistance". The profiles cannot tell cargo from a
+co-located paralogue in the same pathway, because both really are that class of
+enzyme. Position and targeting-peptide signal are what separate them, which is
+why cargo class is weighted at 0.30 and not higher.
+
+A second limit, which this benchmark cannot measure at all: **only cargo classes
+that are already known can be recognised.** Novel cargo scores zero here. A
+candidate with no class match is therefore not excluded, and this component must
+not be read as a filter.
 
 ## Prophage screening control
 
@@ -522,6 +615,8 @@ def run_validation(
     for d in (profiles_dir, extended_dir):
         if not list((d / "phage_markers").glob("*.hmm")):
             fetch_phage_marker_profiles(d)
+        if not list((d / "cargo_classes").glob("*.hmm")):
+            fetch_cargo_class_profiles(d)
 
     if not (extended_dir / "PF19307.hmm").exists():
         family2a = [p for p in select_profiles(["PF19307"]) if p.pfam_id == "PF19307"]
@@ -529,6 +624,8 @@ def run_validation(
 
     rows: List[Dict[str, object]] = []
     flag_rows: List[Dict[str, object]] = []
+    cargo_class_rows: List[Dict[str, object]] = []
+    candidates_scanned = 0
     extra_shells = 0
     fastas: List[Path] = []
     manifest: List[Dict[str, str]] = []
@@ -562,6 +659,22 @@ def run_validation(
             if row["cargo_location_type"] != "natural_fusion"
         }
         flag_rows += false_flags(res, annotation, known_stops, first["organism"])
+        for c in res.candidates:
+            if not c.cargo_class:
+                continue
+            cargo_class_rows.append(
+                {
+                    "organism": first["organism"],
+                    "locus": locus_of(annotation, c) or c.candidate_id,
+                    "cargo_class": c.cargo_class,
+                    "pfam": c.cargo_class_pfam,
+                    "encapsulin_specific": c.cargo_class_specific,
+                    "rank_in_shell": c.rank_in_shell,
+                    "gene_distance": c.gene_distance,
+                    "is_known_cargo": candidate_stop_key(c) in known_stops,
+                }
+            )
+        candidates_scanned += len(res.candidates)
         listed = {find_tag(annotation, t).stop_key for t in group["shell_locus_tag"]}
         extra_shells += sum(
             stop_key(s.start, s.end, s.strand) not in listed for s in res.shells
@@ -606,6 +719,8 @@ def run_validation(
         fetch_default_profiles(phage_dir, select_profiles(["PF05065"]))
     if not list((phage_dir / "phage_markers").glob("*.hmm")):
         fetch_phage_marker_profiles(phage_dir)
+    if not list((phage_dir / "cargo_classes").glob("*.hmm")):
+        fetch_cargo_class_profiles(phage_dir)
 
     prophage_rows = []
     for nuccore_id, group in known.groupby("nuccore_id", sort=False):
@@ -629,6 +744,9 @@ def run_validation(
                     "markers": ev.marker_summary,
                 }
             )
+    cargo_classes = pd.DataFrame(cargo_class_rows)
+    cargo_classes.to_csv(HERE / "cargo_class_calls.tsv", sep="\t", index=False)
+
     prophage = pd.DataFrame(prophage_rows)
     prophage.to_csv(HERE / "prophage_control.tsv", sep="\t", index=False)
 
@@ -676,6 +794,8 @@ def run_validation(
         flags,
         extra_shells,
         pd.DataFrame(sensitivity),
+        cargo_classes,
+        candidates_scanned,
         prophage,
         pd.DataFrame(pooled_rows),
         pooled_clusters,

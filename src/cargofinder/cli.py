@@ -11,7 +11,11 @@ from typing import Optional
 import cargofinder
 from cargofinder.config import EXTENDED_SHELL_PROFILES, load_weights, select_profiles
 from cargofinder.pipeline import run_pipeline
-from cargofinder.profiles import fetch_default_profiles, fetch_phage_marker_profiles
+from cargofinder.profiles import (
+    fetch_cargo_class_profiles,
+    fetch_default_profiles,
+    fetch_phage_marker_profiles,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -216,6 +220,11 @@ def main(argv: Optional[list[str]] = None) -> int:
                 f"Downloaded {len(marker_files)} phage marker profile(s) for "
                 f"prophage screening into '{args.out / 'phage_markers'}'."
             )
+            cargo_files = fetch_cargo_class_profiles(args.out, timeout=args.timeout)
+            print(
+                f"Downloaded {len(cargo_files)} cargo class profile(s) into "
+                f"'{args.out / 'cargo_classes'}'."
+            )
             print(f"Manifest written to: {args.out / 'manifest.json'}")
             return 0
         except Exception as exc:
@@ -252,6 +261,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             print("\nScan completed:")
             print(f"  - Shells detected:       {len(res.shells)}")
             print(f"  - Candidates ranked:     {len(res.candidates)}")
+            classed = sum(1 for c in res.candidates if c.cargo_class)
+            if classed:
+                print(f"  - Known cargo classes:   {classed} candidate(s)")
             flagged = sorted(
                 shell_id
                 for shell_id, ev in res.prophage.items()

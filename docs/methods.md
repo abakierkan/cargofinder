@@ -53,7 +53,7 @@ not in those datasets, and for seeing why each candidate ranks where it does.
 
 ## 3. Scoring
 
-$$\text{Score} = 0.30\,S_\text{distance} + 0.20\,S_\text{operon} + 0.20\,S_\text{TP} + 0.15\,S_\text{tail} + 0.15\,S_\text{recurrence}$$
+$$\text{Score} = 0.25\,S_\text{distance} + 0.15\,S_\text{operon} + 0.15\,S_\text{TP} + 0.30\,S_\text{cargo} + 0.05\,S_\text{tail} + 0.10\,S_\text{recurrence}$$
 
 Weights must be non-negative and sum to 1. Defaults are in `src/cargofinder/data/default_weights.json`; override them with `--weights`. Each row reports all four components.
 
@@ -61,6 +61,7 @@ Weights must be non-negative and sum to 1. Defaults are in `src/cargofinder/data
 | :--- | :--- |
 | $S_\text{distance}$ | $(W - d + 1) / W$ for gene distance $d \le W$. With $W=5$: 1.0, 0.8, 0.6, 0.4, 0.2 |
 | $S_\text{operon}$ | 1.0 for a likely operon member, 0.5 for same strand otherwise, 0.0 for opposite strand |
+| $S_\text{cargo}$ | 1.0 if the candidate matches an encapsulin-cargo-specific Pfam family (PF22277, PF24309), 0.6 for a broad cargo-class family, 0.0 for no match |
 | $S_\text{TP}$ | Best normalised ungapped BLOSUM62 similarity of the terminal slice to the published Family 1 TP consensus `SDGSLGIGSLKRS`, divided by the consensus self-score and clamped to $[0,1]$ |
 | $S_\text{tail}$ | $0.6\,h + 0.4\,\min(1, g / 0.35)$, where $h$ is the fraction of A, V, I, L, M, F, W, P and $g$ is the fraction of G, S |
 | $S_\text{tail}$ with motifs | $0.8 \times$ the above $+\ 0.2\,m$, where $m$ is 1 if any motif matches the C-terminus |
@@ -70,7 +71,14 @@ Weights must be non-negative and sum to 1. Defaults are in `src/cargofinder/data
 the most weight because it is the best documented signal. $S_\text{TP}$ gets more
 than $S_\text{tail}$ because it compares against a published consensus, whereas
 $S_\text{tail}$ is a cargofinder heuristic with no literature basis. Recurrence
-gets the least because it depends on what else is in the run.
+gets the least because it depends on what else is in the run. $S_\text{cargo}$
+gets the largest single weight because cargo identity is the evidence the
+literature actually assigns cargo on, but it is held to 0.30 rather than higher
+for two reasons given in section 3b.
+
+If no cargo class profiles are available, the term is dropped and the remaining
+weights are rescaled to sum to 1, so totals stay on $[0,1]$ and remain
+comparable with runs that had the profiles.
 
 **On $S_\text{TP}$.** This reproduces, in a small deterministic form, the
 comparison Andreas & Giessen (2021) made with `blastp` against the same
@@ -98,6 +106,47 @@ composition heuristic $S_\text{tail}$ alone ranks 2 of 4 first. Four cases is fa
 too few to call that a result, and the systems are related to one another, but it
 is the reason $S_\text{tail}$ was down-weighted from 0.25 to 0.15 in favour of
 $S_\text{TP}$. See `validation/report.md`.
+
+## 3b. Cargo class recognition
+
+v0.1 had no notion of *what a gene is*. That is not how cargo is assigned in the
+literature: Andreas & Giessen (2021) built "HMM templates representative of each
+cargo class" and classified hits "based on their Pfam or Interpro annotation".
+
+`cargo.py` scans candidates against the Pfam families marking the cargo classes
+that paper names. Family 1: DyP peroxidases ("the most abundant cargo class in
+Family 1", 1,505 systems) and the ferritin-like superfamily, which they report
+corresponds to "Flp, rubrerythrin, CoQ7, Mn catalase, IMEF, hemerythrin, and
+bacterioferritin". Family 2: cysteine desulfurases (they give the domain as
+PF00266 directly), terpene cyclases, polyprenyl transferases and xylulose
+kinases.
+
+Serine *O*-acetyltransferases and rhodaneses are **deliberately excluded**
+despite being the most enriched Family 2A operon components, because that paper
+states such accessory components "are not cargo proteins".
+
+Two tiers, because the families differ enormously in specificity:
+
+| Tier | Families | Score |
+| :--- | :--- | :---: |
+| Defined by Pfam as encapsulin cargo | PF22277 (EncFtn-like), PF24309 (IMEF cargo Flp) | 1.0 |
+| Broad enzyme families containing cargo among much else | the other 13 | 0.6 |
+
+Where a protein matches both tiers, the encapsulin-specific call wins regardless
+of E-value, since it is the more informative one.
+
+**Two limits that cap how much this can be trusted.**
+
+1. *It cannot separate cargo from a co-located paralogue.* In the benchmark,
+   every non-cargo class match was in the *P. furiosus* locus: a further
+   ferritin-like protein and three rubrerythrins. Andreas & Giessen note that
+   "Flp-fusion encapsulins are often located in operons containing other
+   ferritin-like proteins or rubrerythrins", so those genes genuinely are that
+   class of enzyme. Position and targeting peptide are what distinguish them.
+2. *It can only recognise cargo classes that are already known.* Novel cargo
+   scores zero, so a candidate with no class match is not excluded. This
+   component must never be read as a filter. The benchmark cannot measure this
+   failure mode at all, because every system in it is already characterised.
 
 ## 3a. Prophage screening
 
@@ -141,8 +190,10 @@ encapsulin".
 
 **Consequences to keep in mind:**
 
-- In a single-shell run the recurrence term is a constant 0.03.
-- An adjacent same-strand operon gene therefore scores 0.53 before any tail signal. A high score still mostly reflects position.
+- In a single-shell run the recurrence term is a constant 0.02.
+- An adjacent same-strand operon gene scores 0.42 with no tail or cargo signal.
+  Recognised cargo in that position reaches roughly 0.72, so position alone no
+  longer dominates the way it did in v0.1.
 - Scores from single-genome and multi-genome runs are not comparable.
 - Sequence complexity is reported but not scored. We found no evidence that it should count in either direction.
 - `--termini both` uses the better terminus. It is off by default because signal peptides also make N-termini hydrophobic.

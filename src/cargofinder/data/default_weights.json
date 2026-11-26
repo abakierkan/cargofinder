@@ -1,7 +1,8 @@
 {
-  "w_distance": 0.30,
-  "w_operon": 0.20,
-  "w_tp_consensus": 0.20,
-  "w_tail_features": 0.15,
-  "w_recurrence": 0.15
+  "w_distance": 0.25,
+  "w_operon": 0.15,
+  "w_tp_consensus": 0.15,
+  "w_cargo_class": 0.30,
+  "w_tail_features": 0.05,
+  "w_recurrence": 0.10
 }

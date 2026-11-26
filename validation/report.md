@@ -16,28 +16,28 @@ the run; do not edit them by hand.
 
 ## Cargo recovery
 
-| top k | cargofinder, all 9 cargos | cargofinder, 4 adjacent cargos | adjacency only, adjacent cargos | tail only (composition), adjacent cargos | TP consensus only, adjacent cargos |
-| --- | --- | --- | --- | --- | --- |
-| 1 | 4/9 | 4/4 | 3/4 | 2/4 | 4/4 |
-| 3 | 4/9 | 4/4 | 4/4 | 4/4 | 4/4 |
-| 5 | 4/9 | 4/4 | 4/4 | 4/4 | 4/4 |
+| top k | cargofinder, all 9 cargos | cargofinder, 4 adjacent cargos | adjacency only, adjacent cargos | tail only (composition), adjacent cargos | TP consensus only, adjacent cargos | cargo class only, adjacent cargos |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 4/9 | 4/4 | 3/4 | 2/4 | 4/4 | 4/4 |
+| 3 | 4/9 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 |
+| 5 | 4/9 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 |
 
 The baselines count ties against the known cargo: a method that cannot separate two
 genes has not found the right one.
 
-| organism | known_cargo | location_type | evidence | outcome | score_total | adjacency_only_rank | adjacency_only_ties | tail_only_rank | tail_only_ties | tp_only_rank | tp_only_ties |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Thermotoga maritima MSB8 | TM0786 | adjacent_operon | experimental | rank 1 of 10 | 0.674 | 1 | 0 | 3 | 0 | 1 | 0 |
-| Mycobacterium tuberculosis H37Rv | Rv0799c | adjacent_operon | experimental | rank 1 of 10 | 0.753 | 1 | 0 | 1 | 0 | 1 | 0 |
-| Mycobacterium tuberculosis H37Rv | Rv3841 | distal_genomic | experimental | outside window |  |  |  |  |  |  |  |
-| Mycobacterium tuberculosis H37Rv | Rv3607c | distal_genomic | experimental | outside window |  |  |  |  |  |  |  |
-| Myxococcus xanthus DK 1622 | MXAN_3557 | adjacent_operon | experimental | rank 1 of 10 | 0.682 | 1 | 1 | 3 | 0 | 1 | 0 |
-| Myxococcus xanthus DK 1622 | MXAN_4464 | distal_genomic | experimental | outside window |  |  |  |  |  |  |  |
-| Myxococcus xanthus DK 1622 | MXAN_2410 | distal_genomic | experimental | outside window |  |  |  |  |  |  |  |
-| Pyrococcus furiosus DSM 3638 | PF1192 | natural_fusion | experimental | rank 1 of 10 | 0.594 | 1 | 0 | 8 | 0 | 9 | 0 |
-| Rhodococcus jostii RHA1 | RHA1_ro02407 | adjacent_operon | experimental | rank 1 of 10 | 0.69 | 1 | 0 | 1 | 0 | 1 | 0 |
-| Rhodococcus erythropolis PR4 | RER_59910 | adjacent_operon | homology_inferred | rank 1 of 10 | 0.822 | 1 | 0 | 1 | 0 | 1 | 0 |
-| Synechococcus elongatus PCC 7942 | Synpcc7942_B2661 | family_2a_operon | experimental | shell not detected |  |  |  |  |  |  |  |
+| organism | known_cargo | location_type | evidence | outcome | score_total | adjacency_only_rank | adjacency_only_ties | tail_only_rank | tail_only_ties | tp_only_rank | tp_only_ties | cargo_class_only_rank | cargo_class_only_ties | cargo_class |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Thermotoga maritima MSB8 | TM0786 | adjacent_operon | experimental | rank 1 of 10 | 0.798 | 1 | 0 | 3 | 0 | 1 | 0 | 1 | 0 | encapsulated_ferritin |
+| Mycobacterium tuberculosis H37Rv | Rv0799c | adjacent_operon | experimental | rank 1 of 10 | 0.725 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | dyp_peroxidase |
+| Mycobacterium tuberculosis H37Rv | Rv3841 | distal_genomic | experimental | outside window |  |  |  |  |  |  |  |  |  |  |
+| Mycobacterium tuberculosis H37Rv | Rv3607c | distal_genomic | experimental | outside window |  |  |  |  |  |  |  |  |  |  |
+| Myxococcus xanthus DK 1622 | MXAN_3557 | adjacent_operon | experimental | rank 1 of 10 | 0.802 | 1 | 1 | 3 | 0 | 1 | 0 | 1 | 0 | encapsulated_ferritin |
+| Myxococcus xanthus DK 1622 | MXAN_4464 | distal_genomic | experimental | outside window |  |  |  |  |  |  |  |  |  |  |
+| Myxococcus xanthus DK 1622 | MXAN_2410 | distal_genomic | experimental | outside window |  |  |  |  |  |  |  |  |  |  |
+| Pyrococcus furiosus DSM 3638 | PF1192 | natural_fusion | experimental | rank 1 of 10 | 0.744 | 1 | 0 | 8 | 0 | 9 | 0 | 1 | 0 | encapsulated_ferritin |
+| Rhodococcus jostii RHA1 | RHA1_ro02407 | adjacent_operon | experimental | rank 1 of 10 | 0.681 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | dyp_peroxidase |
+| Rhodococcus erythropolis PR4 | RER_59910 | adjacent_operon | homology_inferred | rank 1 of 10 | 0.78 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | dyp_peroxidase |
+| Synechococcus elongatus PCC 7942 | Synpcc7942_B2661 | family_2a_operon | experimental | shell not detected |  |  |  |  |  |  |  |  |  |  |
 
 Reported separately:
 
@@ -59,8 +59,66 @@ Reported separately:
 
 | termini | shell_detected | cargo_rank | cargo_score | top_score | top_gene_distance |
 | --- | --- | --- | --- | --- | --- |
-| c | True | 3 of 10 | 0.541 | 0.652 | 1 |
-| both | True | 3 of 10 | 0.545 | 0.652 | 1 |
+| c | True | 1 of 10 | 0.582 | 0.582 | -1 |
+| both | True | 1 of 10 | 0.584 | 0.584 | -1 |
+
+## Cargo class recognition
+
+Candidates are scanned against Pfam families marking the cargo classes named by
+Andreas & Giessen (2021), who assigned cargo by identity this way. Two families,
+PF22277 (EncFtn-like) and PF24309 (IMEF cargo Flp), are defined by Pfam as
+encapsulin cargo; the rest are broad enzyme families scored lower.
+
+| measure | value |
+| --- | --- |
+| Candidates scanned | 60 |
+| Matched some cargo class | 10 |
+| ...that are known cargo | 5 |
+| ...that are not known cargo | 5 |
+| Matched by an *encapsulin-specific* family | 3 |
+| ...of those, not a listed cargo | 1 |
+
+| organism | locus | cargo_class | pfam | encapsulin_specific | rank_in_shell | gene_distance | is_known_cargo |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Thermotoga maritima MSB8 | TM0786 | encapsulated_ferritin | PF22277 | True | 1 | 1 | True |
+| Mycobacterium tuberculosis H37Rv | Rv0799c | dyp_peroxidase | PF20628 | False | 1 | 1 | True |
+| Myxococcus xanthus DK 1622 | MXAN_3557 | encapsulated_ferritin | PF22277 | True | 1 | 1 | True |
+| Pyrococcus furiosus DSM 3638 | PF1192 | encapsulated_ferritin | PF22277 | True | 1 | 1 | False |
+| Pyrococcus furiosus DSM 3638 | PF1193 | ferritin_like | PF00210 | False | 2 | 2 | False |
+| Pyrococcus furiosus DSM 3638 | PF1190 | rubrerythrin | PF02915 | False | 3 | -1 | False |
+| Pyrococcus furiosus DSM 3638 | PF1195 | rubrerythrin | PF02915 | False | 4 | 4 | False |
+| Pyrococcus furiosus DSM 3638 | PF1196 | rubrerythrin | PF02915 | False | 5 | 5 | False |
+| Rhodococcus jostii RHA1 | RHA1_ro02407 | dyp_peroxidase | PF20628 | False | 1 | -1 | True |
+| Rhodococcus erythropolis PR4 | RER_59910 | dyp_peroxidase | PF20628 | False | 1 | 1 | True |
+
+Every listed cargo that fell inside a window was given a biologically correct
+class: the ferritin-like cargos as encapsulated ferritin, the peroxidases as
+DyP. None was missed.
+
+**Read the `is_known_cargo` column carefully.** It is False for the
+*P. furiosus* `PF1192` row, because that ORF is the annotation-split half of a
+fusion and is excluded from the cargo counts throughout this report. Its
+`encapsulated_ferritin` call is nonetheless biologically right: `PF1192` is the
+ferritin-like portion of the single 345-aa protein in PDB 2E0Z. So the one
+non-cargo hit from an encapsulin-specific family is a bookkeeping artifact of
+this benchmark, not a misidentification.
+
+**The remaining non-cargo matches are not noise either, and they show the limit
+of this signal.** They are all in the same *P. furiosus* locus: one further
+ferritin-like protein (PF00210) and three rubrerythrins (PF02915). That is
+expected biology rather than a failure of the profiles. Andreas & Giessen (2021)
+note that
+"Flp-fusion encapsulins are often located in operons containing other
+ferritin-like proteins or rubrerythrins, hinting at a function related to iron
+homeostasis and stress resistance". The profiles cannot tell cargo from a
+co-located paralogue in the same pathway, because both really are that class of
+enzyme. Position and targeting-peptide signal are what separate them, which is
+why cargo class is weighted at 0.30 and not higher.
+
+A second limit, which this benchmark cannot measure at all: **only cargo classes
+that are already known can be recognised.** Novel cargo scores zero here. A
+candidate with no class match is therefore not excluded, and this component must
+not be read as a filter.
 
 ## Prophage screening control
 
@@ -126,12 +184,12 @@ Highest-scoring gene that is not listed cargo, per organism:
 
 | organism | locus | product | score_total | gene_distance | c_term_seq |
 | --- | --- | --- | --- | --- | --- |
-| Thermotoga maritima MSB8 | TM0784 | hypothetical protein | 0.436 | -1 | IVAIAGKVVGTWAKGKLDVL |
-| Mycobacterium tuberculosis H37Rv | Rv0797 | insertion sequence element IS1547 transposase | 0.408 | -1 | HTQPAAACHRSYCSRSCLSG |
-| Myxococcus xanthus DK 1622 | MXAN_3555 | sigma-54-dependent transcriptional regulator | 0.594 | -1 | MKEFGLRDTTPDGQEDGPDE |
-| Pyrococcus furiosus DSM 3638 | PF1192 | hypothetical protein | 0.594 | 1 | PEQVTELKGGFEEVQGANWN |
-| Rhodococcus jostii RHA1 | RHA1_ro02409 | conserved hypothetical protein | 0.423 | 1 | ALLFTMVTYTFGGLYLLFGG |
-| Rhodococcus erythropolis PR4 | RER_59920 | hypothetical protein | 0.545 | 2 | DGKIFEIPAGFDAGAQAATP |
+| Thermotoga maritima MSB8 | TM0784 | hypothetical protein | 0.316 | -1 | IVAIAGKVVGTWAKGKLDVL |
+| Mycobacterium tuberculosis H37Rv | Rv0797 | insertion sequence element IS1547 transposase | 0.301 | -1 | HTQPAAACHRSYCSRSCLSG |
+| Myxococcus xanthus DK 1622 | MXAN_3555 | sigma-54-dependent transcriptional regulator | 0.448 | -1 | MKEFGLRDTTPDGQEDGPDE |
+| Pyrococcus furiosus DSM 3638 | PF1192 | hypothetical protein | 0.744 | 1 | PEQVTELKGGFEEVQGANWN |
+| Rhodococcus jostii RHA1 | RHA1_ro02409 | conserved hypothetical protein | 0.305 | 1 | ALLFTMVTYTFGGLYLLFGG |
+| Rhodococcus erythropolis PR4 | RER_59920 | hypothetical protein | 0.395 | 2 | DGKIFEIPAGFDAGAQAATP |
 
 These genes are unconfirmed, not proven non-cargo. Full top-3 lists are in
 `validation/false_flags.tsv`.
@@ -149,16 +207,16 @@ Listed cargo in the pooled run:
 
 | organism | known_cargo | rank_in_shell | shells_in_cluster | score_total |
 | --- | --- | --- | --- | --- |
-| Thermotoga maritima MSB8 | TM0786 | 1 | 1 | 0.674 |
-| Mycobacterium tuberculosis H37Rv | Rv0799c | 1 | 3 | 0.873 |
+| Thermotoga maritima MSB8 | TM0786 | 1 | 1 | 0.798 |
+| Mycobacterium tuberculosis H37Rv | Rv0799c | 1 | 3 | 0.805 |
 | Mycobacterium tuberculosis H37Rv | Rv3841 | not in a window |  |  |
 | Mycobacterium tuberculosis H37Rv | Rv3607c | not in a window |  |  |
-| Myxococcus xanthus DK 1622 | MXAN_3557 | 1 | 1 | 0.682 |
+| Myxococcus xanthus DK 1622 | MXAN_3557 | 1 | 1 | 0.802 |
 | Myxococcus xanthus DK 1622 | MXAN_4464 | not in a window |  |  |
 | Myxococcus xanthus DK 1622 | MXAN_2410 | not in a window |  |  |
-| Pyrococcus furiosus DSM 3638 | PF1192 | 1 | 1 | 0.594 |
-| Rhodococcus jostii RHA1 | RHA1_ro02407 | 1 | 3 | 0.81 |
-| Rhodococcus erythropolis PR4 | RER_59910 | 1 | 3 | 0.942 |
+| Pyrococcus furiosus DSM 3638 | PF1192 | 1 | 1 | 0.744 |
+| Rhodococcus jostii RHA1 | RHA1_ro02407 | 1 | 3 | 0.761 |
+| Rhodococcus erythropolis PR4 | RER_59910 | 1 | 3 | 0.86 |
 | Synechococcus elongatus PCC 7942 | Synpcc7942_B2661 | not in a window |  |  |
 
 Clustering at 30% identity and 80% coverage groups only sequences that stay similar

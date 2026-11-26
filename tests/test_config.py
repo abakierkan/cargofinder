@@ -1,5 +1,6 @@
 """Unit tests for configuration and scoring weights."""
 
+import math
 from pathlib import Path
 
 import pytest
@@ -22,6 +23,7 @@ def test_default_scoring_weights_valid():
         weights.w_distance
         + weights.w_operon
         + weights.w_tp_consensus
+        + weights.w_cargo_class
         + weights.w_tail_features
         + weights.w_recurrence
     )
@@ -31,8 +33,9 @@ def test_default_scoring_weights_valid():
 def test_invalid_negative_scoring_weights():
     weights = ScoringWeights(
         w_distance=-0.1,
-        w_operon=0.4,
+        w_operon=0.3,
         w_tp_consensus=0.2,
+        w_cargo_class=0.1,
         w_tail_features=0.3,
         w_recurrence=0.2,
     )
@@ -45,6 +48,7 @@ def test_invalid_sum_scoring_weights():
         w_distance=0.5,
         w_operon=0.5,
         w_tp_consensus=0.5,
+        w_cargo_class=0.5,
         w_tail_features=0.5,
         w_recurrence=0.5,
     )
@@ -74,7 +78,7 @@ def test_run_config_defaults():
 
 
 def test_load_weights_inline_and_file(tmp_path):
-    assert load_weights('{"w_distance": 0.30}') == ScoringWeights()
+    assert load_weights('{"w_distance": 0.25}') == ScoringWeights()
     shipped = Path(cargofinder.__file__).parent / "data" / "default_weights.json"
     assert load_weights(str(shipped)) == ScoringWeights()
 
@@ -107,3 +111,30 @@ def test_select_profiles():
 def test_run_config_rejects_bad_values(kwargs):
     with pytest.raises(ValueError):
         RunConfig(**kwargs).validate()
+
+
+def test_without_cargo_class_rescales_to_one():
+    """Dropping the cargo class term must keep totals on the same scale."""
+    w = ScoringWeights()
+    dropped = w.without_cargo_class()
+    dropped.validate()
+    assert dropped.w_cargo_class == 0.0
+    # Relative proportions of the remaining terms are preserved.
+    assert math.isclose(
+        dropped.w_distance / dropped.w_operon,
+        w.w_distance / w.w_operon,
+        rel_tol=1e-9,
+    )
+
+
+def test_without_cargo_class_rejects_all_zero_remainder():
+    w = ScoringWeights(
+        w_distance=0.0,
+        w_operon=0.0,
+        w_tp_consensus=0.0,
+        w_cargo_class=1.0,
+        w_tail_features=0.0,
+        w_recurrence=0.0,
+    )
+    with pytest.raises(ValueError, match="all other weights are zero"):
+        w.without_cargo_class()

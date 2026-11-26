@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from cargofinder.config import (
+    CARGO_CLASS_PROFILES,
+    CARGO_CLASS_SUBDIR,
     DEFAULT_SHELL_PROFILES,
     PHAGE_MARKER_PROFILES,
     PHAGE_MARKER_SUBDIR,
@@ -227,6 +229,47 @@ def fetch_phage_marker_profiles(
         )
         meta["family_label"] = prof.family
         meta["family_description"] = prof.description
+        manifest[prof.pfam_id] = meta
+
+    (sub / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    return downloaded
+
+
+def fetch_cargo_class_profiles(
+    out_dir: Path | str,
+    timeout: int = 30,
+) -> List[Path]:
+    """Download the Pfam profiles that mark known encapsulin cargo classes.
+
+    They go into a `cargo_classes` subdirectory so that `find_profile_files`
+    does not pick them up as shell profiles. See `cargofinder.cargo` for what a
+    match means and `config.CARGO_CLASS_PROFILES` for the accessions and their
+    provenance.
+
+    Returns
+    -------
+    list of Path
+        Paths to downloaded `.hmm` files.
+    """
+    sub = Path(out_dir) / CARGO_CLASS_SUBDIR
+    sub.mkdir(parents=True, exist_ok=True)
+
+    downloaded: List[Path] = []
+    manifest: Dict[str, dict] = {}
+
+    for prof in CARGO_CLASS_PROFILES:
+        hmm_file = fetch_pfam_profile(prof.pfam_id, sub, timeout=timeout)
+        downloaded.append(hmm_file)
+
+        meta_file = sub / f"{prof.pfam_id}.meta.json"
+        meta = (
+            json.loads(meta_file.read_text(encoding="utf-8"))
+            if meta_file.exists()
+            else {}
+        )
+        meta["cargo_class"] = prof.cargo_class
+        meta["description"] = prof.description
+        meta["encapsulin_specific"] = prof.encapsulin_specific
         manifest[prof.pfam_id] = meta
 
     (sub / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")

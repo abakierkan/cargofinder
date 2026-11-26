@@ -73,6 +73,107 @@ EXTENDED_SHELL_PROFILES: Dict[str, ShellProfileDef] = {
 }
 
 
+@dataclass(frozen=True)
+class CargoClassDef:
+    """A Pfam family that marks a known encapsulin cargo class."""
+
+    pfam_id: str
+    cargo_class: str
+    description: str
+    #: True only for families defined specifically as encapsulin cargo. False for
+    #: broad enzyme families that merely contain cargo among much else.
+    encapsulin_specific: bool = False
+
+
+# Cargo class profiles.
+#
+# Why this exists: Andreas & Giessen (2021) Nat Commun 12:4748
+# (doi:10.1038/s41467-021-25071-y) assigned cargo not by position alone but by
+# identity, building "HMM templates representative of each cargo class" and
+# classifying the hits "based on their Pfam or Interpro annotation". The cargo
+# classes below are the ones that paper names.
+#
+# Family 1 ("at least 6 operon types defined by the presence of 6 distinct and
+# conserved cargo proteins"): DyP peroxidases are "the most abundant cargo class
+# in Family 1" (1,505 systems), and ferritin-like proteins (FLPs) "comprise the
+# second largest set", clustering into families that "largely correspond to the
+# following Pfam families: Flp, rubrerythrin, CoQ7, Mn catalase, IMEF,
+# hemerythrin, and bacterioferritin".
+#
+# Family 2: "The most commonly enriched genes associated with Family 2
+# encapsulins encode for cysteine desulfurases (CD), terpene cyclases (TC),
+# polyprenyl transferases (PT), and xylulose kinases (XK)". The paper gives the
+# cysteine desulfurase domain accession directly as PF00266.
+#
+# Deliberately NOT included: serine O-acetyltransferases and rhodaneses. They are
+# the most enriched accessory components of Family 2A operons, but that paper
+# states plainly that such components "are not cargo proteins".
+#
+# Accessions and names were checked against the InterPro API on 2026-11-26
+# (https://www.ebi.ac.uk/interpro/api/entry/pfam/<accession>).
+CARGO_CLASS_PROFILES: List[CargoClassDef] = [
+    # -- Encapsulin-cargo-specific families. Only these two are defined by Pfam
+    # -- as encapsulin cargo; a hit here is far more meaningful than the rest.
+    CargoClassDef(
+        "PF22277",
+        "encapsulated_ferritin",
+        "EncFtn-like: encapsulated ferritin-like ferroxidase (R. rubrum EncFtn)",
+        encapsulin_specific=True,
+    ),
+    CargoClassDef(
+        "PF24309",
+        "imef_flp",
+        "IMEF_Flp: IMEF cargo Flp protein of a type 1 encapsulin nanocompartment",
+        encapsulin_specific=True,
+    ),
+    # -- Dye-decolorizing peroxidase, the most abundant Family 1 cargo class.
+    CargoClassDef("PF04261", "dyp_peroxidase", "Dyp_perox_N: DyP-type peroxidase"),
+    CargoClassDef("PF20628", "dyp_peroxidase", "Dyp_perox_C: DyP-type peroxidase"),
+    CargoClassDef("PF21105", "dyp_peroxidase", "DyP_N: DyP dimeric a+b barrel domain"),
+    # -- Ferritin-like protein superfamily, the second largest Family 1 set.
+    CargoClassDef("PF00210", "ferritin_like", "Ferritin: ferritin-like domain"),
+    CargoClassDef(
+        "PF13668",
+        "ferritin_like",
+        "Ferritin_2: ferritins, DPS family and bacterioferritins",
+    ),
+    CargoClassDef("PF02915", "rubrerythrin", "Rubrerythrin"),
+    CargoClassDef(
+        "PF05067", "mn_catalase", "Mn_catalase: manganese containing catalase"
+    ),
+    CargoClassDef("PF03232", "coq7", "COQ7: ubiquinone biosynthesis protein COQ7"),
+    CargoClassDef(
+        "PF01814", "hemerythrin", "Hemerythrin: hemerythrin HHE cation binding domain"
+    ),
+    # -- Family 2 cargo classes.
+    CargoClassDef(
+        "PF00266",
+        "cysteine_desulfurase",
+        "Aminotran_5: SufS-like cysteine desulfurase domain, named as PF00266 "
+        "for Family 2 CD cargo by Andreas & Giessen (2021)",
+    ),
+    CargoClassDef(
+        "PF03936", "terpene_cyclase", "Terpene_synth_C: terpene synthase metal binding"
+    ),
+    CargoClassDef(
+        "PF00348", "polyprenyl_transferase", "polyprenyl_synt: polyprenyl synthetase"
+    ),
+    CargoClassDef(
+        "PF00370", "xylulose_kinase", "FGGY_N: FGGY carbohydrate kinase, N-terminal"
+    ),
+]
+
+# Subdirectory of the profile directory that holds cargo class profiles, so that
+# find_profile_files() does not pick them up as shell profiles.
+CARGO_CLASS_SUBDIR = "cargo_classes"
+
+# Score given to a candidate matching a cargo class profile. These are judgment
+# calls, not fitted values. An encapsulin-specific family scores full marks; a
+# broad enzyme family scores less because most of its members are not cargo.
+CARGO_CLASS_SCORE_SPECIFIC = 1.0
+CARGO_CLASS_SCORE_GENERAL = 0.6
+
+
 # Phage marker profiles used to recognise prophage context around a shell hit.
 #
 # Why this exists: Andreas & Giessen (2021) Nat Commun 12:4748
@@ -149,6 +250,7 @@ class ScoringWeights:
     Score = w_distance * S_distance
           + w_operon * S_operon
           + w_tp_consensus * S_tp_consensus
+          + w_cargo_class * S_cargo_class
           + w_tail_features * S_tail_features
           + w_recurrence * S_recurrence
 
@@ -165,15 +267,21 @@ class ScoringWeights:
       (hydrophobic/amphipathic patch, Gly/Ser flexibility). This component is a
       cargofinder heuristic with no published basis, and the v0.1 benchmark showed
       it added almost nothing over adjacency; it is deliberately down-weighted.
+    - Cargo class: Whether the candidate is a known encapsulin cargo class, by Pfam
+      profile. Andreas & Giessen (2021) assigned cargo by identity this way, and it
+      is the strongest single signal; but broad enzyme families contain many
+      non-cargo proteins, and genuinely novel cargo scores zero, so it does not
+      dominate. See cargofinder.cargo.
     - Recurrence: The same gene family appearing next to encapsulins across multiple
       independent loci/genomes provides strong evolutionary support.
     """
 
-    w_distance: float = 0.30
-    w_operon: float = 0.20
-    w_tp_consensus: float = 0.20
-    w_tail_features: float = 0.15
-    w_recurrence: float = 0.15
+    w_distance: float = 0.25
+    w_operon: float = 0.15
+    w_tp_consensus: float = 0.15
+    w_cargo_class: float = 0.30
+    w_tail_features: float = 0.05
+    w_recurrence: float = 0.10
 
     def validate(self) -> None:
         """Validate that weights are non-negative and sum to 1.0."""
@@ -181,6 +289,7 @@ class ScoringWeights:
             self.w_distance,
             self.w_operon,
             self.w_tp_consensus,
+            self.w_cargo_class,
             self.w_tail_features,
             self.w_recurrence,
         ]
@@ -189,6 +298,34 @@ class ScoringWeights:
         total = sum(weights)
         if not (0.99 <= total <= 1.01):
             raise ValueError(f"Weights must sum to 1.0 (got {total:.4f}): {self}")
+
+    def without_cargo_class(self) -> "ScoringWeights":
+        """Return these weights with the cargo class term removed and rescaled.
+
+        Used when no cargo class profiles are available: rather than scoring
+        every candidate 0 for that component, which would depress all totals and
+        make runs incomparable, the remaining weights are rescaled to sum to 1.
+        """
+        remaining = (
+            self.w_distance
+            + self.w_operon
+            + self.w_tp_consensus
+            + self.w_tail_features
+            + self.w_recurrence
+        )
+        if remaining <= 0:
+            raise ValueError(
+                "Cannot drop the cargo class term: all other weights are zero."
+            )
+        factor = 1.0 / remaining
+        return ScoringWeights(
+            w_distance=self.w_distance * factor,
+            w_operon=self.w_operon * factor,
+            w_tp_consensus=self.w_tp_consensus * factor,
+            w_cargo_class=0.0,
+            w_tail_features=self.w_tail_features * factor,
+            w_recurrence=self.w_recurrence * factor,
+        )
 
 
 def load_weights(weights_arg: str) -> ScoringWeights:

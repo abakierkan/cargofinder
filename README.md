@@ -9,9 +9,10 @@ This is a reproducible ranking tool, not a discovery claim. Every candidate is a
 `cargofinder` finds encapsulin shell genes in bacterial and archaeal genomes with HMMER, then scores the genes around each shell using:
 
 1. **Position**: distance in genes, strand, and intergenic gaps.
-2. **Targeting-peptide similarity**: BLOSUM62 similarity of each terminus to the published Family 1 targeting-peptide consensus `SDGSLGIGSLKRS` (Giessen & Silver 2017).
-3. **Terminal peptide composition**: hydrophobic and Gly/Ser content, plus optional motif regexes.
-4. **Recurrence**: whether a gene family sits next to shells in several genomes (MMseqs2).
+2. **Cargo class identity**: whether the gene is a known encapsulin cargo class (DyP peroxidase, encapsulated ferritin, cysteine desulfurase, terpene cyclase and others), by Pfam profile.
+3. **Targeting-peptide similarity**: BLOSUM62 similarity of each terminus to the published Family 1 targeting-peptide consensus `SDGSLGIGSLKRS` (Giessen & Silver 2017).
+4. **Terminal peptide composition**: hydrophobic and Gly/Ser content, plus optional motif regexes.
+5. **Recurrence**: whether a gene family sits next to shells in several genomes (MMseqs2).
 
 It also screens each shell locus for **prophage context**, because encapsulin shells share the HK97 fold with phage capsids and some shell hits are phage.
 
@@ -85,7 +86,7 @@ cargofinder run genome.fasta --out results/ \
 
 Outputs in `results/`:
 
-- `candidates.tsv`, `candidates.json`: ranked candidates with all score components.
+- `candidates.tsv`, `candidates.json`: ranked candidates with all score components, plus the cargo class matched, if any.
 - `shells.tsv`: detected shell genes, their E-values, and prophage-context flags.
 - `run_summary.json`, `run_summary.txt`: counts, parameters, tool versions and profiles.
 - `plots/neighborhood_<shell>.png`: one figure per shell.
@@ -100,13 +101,21 @@ The score is a weighted sum. Weights are in [default_weights.json](src/cargofind
 
 | Component | Weight | Value |
 | :--- | :---: | :--- |
-| `score_distance` | 0.30 | 1.0 for the adjacent gene, falling by 1/W per gene (W = window) |
-| `score_operon` | 0.20 | 1.0 likely operon, 0.5 same strand, 0.0 opposite strand |
-| `score_tp_consensus` | 0.20 | Normalised BLOSUM62 similarity of the terminus to the published Family 1 TP consensus `SDGSLGIGSLKRS` |
-| `score_tail_features` | 0.15 | 0.6 × hydrophobic fraction + 0.4 × min(1, Gly/Ser fraction / 0.35); motif matches, if used, take 20% |
-| `score_recurrence` | 0.15 | 0.2 for one shell, 0.6 for two, 1.0 for three or more |
+| `score_distance` | 0.25 | 1.0 for the adjacent gene, falling by 1/W per gene (W = window) |
+| `score_operon` | 0.15 | 1.0 likely operon, 0.5 same strand, 0.0 opposite strand |
+| `score_cargo_class` | 0.30 | 1.0 for an encapsulin-cargo-specific Pfam family, 0.6 for a broad cargo-class family, 0.0 for no match |
+| `score_tp_consensus` | 0.15 | Normalised BLOSUM62 similarity of the terminus to the published Family 1 TP consensus `SDGSLGIGSLKRS` |
+| `score_tail_features` | 0.05 | 0.6 × hydrophobic fraction + 0.4 × min(1, Gly/Ser fraction / 0.35); motif matches, if used, take 20% |
+| `score_recurrence` | 0.10 | 0.2 for one shell, 0.6 for two, 1.0 for three or more |
 
-The weights are judgment calls, not fitted values. An adjacent same-strand operon gene scores 0.53 before any tail signal in a single-shell run, so a high score still mostly reflects position. Read the components, not just the total. See [docs/methods.md](docs/methods.md).
+The weights are judgment calls, not fitted values. An adjacent same-strand operon gene scores 0.42 with no cargo or tail signal; recognised cargo in that position reaches about 0.72. Read the components, not just the total. See [docs/methods.md](docs/methods.md).
+
+**Cargo class identity** is the signal the literature actually assigns cargo on — Andreas & Giessen built HMMs per cargo class and classified hits by Pfam annotation. `cargofinder` scans the same classes. Two Pfam families, PF22277 (EncFtn-like) and PF24309 (IMEF cargo Flp), are *defined* as encapsulin cargo and score 1.0; the other 13 are broad enzyme families that contain cargo among much else and score 0.6. Serine *O*-acetyltransferases and rhodaneses are excluded, because that paper says accessory operon components "are not cargo proteins".
+
+It is weighted at 0.30 rather than higher because of two hard limits:
+
+- **It cannot separate cargo from a co-located paralogue.** Every non-cargo class match in the benchmark was in the *P. furiosus* iron-homeostasis locus — a further ferritin-like protein and three rubrerythrins, which genuinely are that class of enzyme.
+- **It only recognises cargo classes that are already known.** Novel cargo scores zero, so a candidate with no class match is *not* excluded. Never read this component as a filter.
 
 `score_tp_consensus` reproduces, in a small deterministic form, the comparison Andreas & Giessen (2021) made with `blastp` against the same consensus. It is not BLAST and carries no E-value or significance claim. Two things to know before reading the number:
 
@@ -124,10 +133,13 @@ Run on one complete NCBI replicon per organism, with default parameters, the PF0
 | All cited, experimentally shown, separately encoded cargos | **4 / 9** |
 | Those encoded next to the shell | 4 / 4 |
 | Adjacent cargos, position alone (ties count against) | 3 / 4 |
+| Adjacent cargos, cargo class alone | 4 / 4 |
 | Adjacent cargos, TP consensus similarity alone | 4 / 4 |
 | Adjacent cargos, composition heuristic alone (ties count against) | 2 / 4 |
 
-On these four cases the published TP consensus similarity alone ranks every known cargo first, position alone gets 3 of 4, and the composition heuristic gets 2 of 4. **Four cases is far too few to call that a result**, and the systems are related to one another, but it is why the composition heuristic was down-weighted in favour of the consensus signal. It is also why `score_tp_consensus` is reported separately: you can check it yourself on your own data.
+Cargo class and TP consensus each rank all four known cargos first; position alone gets 3 of 4; the composition heuristic gets 2 of 4. **Four cases is far too few to call that a result**, and the systems are related to one another. It is, however, why the composition heuristic was down-weighted and the two literature-grounded signals were brought in, and all components are reported separately so you can check them on your own data.
+
+Every known cargo in a window was given a biologically correct class: the ferritin-like cargos as encapsulated ferritin, the peroxidases as DyP. Of 60 candidates scanned, 10 matched some cargo class; the non-cargo matches were all co-located ferritin-like and rubrerythrin genes in the *P. furiosus* iron locus. Full table in [validation/report.md](validation/report.md) and [cargo_class_calls.tsv](validation/cargo_class_calls.tsv).
 
 | Organism | Known cargo | Outcome |
 | :--- | :--- | :--- |
@@ -164,6 +176,7 @@ pixi run python validation/run_validation.py
 - **Targeting peptides are weakly conserved**, so motif signals are noisy.
 - **Adjacency is not proof.** Some cargo is encoded elsewhere or fused to the shell, and fusions annotated as two genes can look like adjacent cargo.
 - **Cargo without a recognizable terminal peptide will be missed** or get no tail credit. By default only the C-terminus is scored.
+- **Novel cargo classes cannot be recognised.** `score_cargo_class` only knows the classes already in the literature, so genuinely new cargo gets nothing from the component that carries the most weight.
 - **Only PF04454 is scanned by default.** Family 2A requires `--extra PF19307`, Family 4B `--extra PF08967`. Checked against Pfam clan CL0373 on 2026-11-26, those three are the only encapsulin-specific Pfam families; every other clan member is a phage capsid family. **Family 2B and Family 3 have no Pfam profile at all**, so `cargofinder` cannot detect them and no option changes that. PF05065 is a general phage capsid family, so expect prophage hits.
 - **Shell hits can be phage.** Encapsulin shells share the HK97 fold with phage capsids, so prophage context is screened and reported, but the screen catches only some prophages (2 of 9 in the benchmark control).
 - Contigs are treated as linear, so windows do not wrap around circular replicons.

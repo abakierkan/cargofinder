@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 ### Added
+- `score_cargo_class` and `cargo.py`: candidates are scanned against 15 Pfam
+  families marking the encapsulin cargo classes named by Andreas & Giessen
+  (2021), who assigned cargo by identity this way. Two tiers: PF22277
+  (EncFtn-like) and PF24309 (IMEF cargo Flp) are defined by Pfam as encapsulin
+  cargo and score 1.0; the 13 broad enzyme families score 0.6. Accessory
+  components (rhodanese, serine O-acetyltransferase) are excluded, because that
+  paper states they are not cargo proteins. `fetch-profiles` downloads these
+  into `profiles/cargo_classes/`. Each row reports the class and Pfam matched.
+- `ScoringWeights.without_cargo_class()`: when no cargo class profiles are
+  present, the term is dropped and the remaining weights rescaled to sum to 1,
+  so totals stay comparable instead of being uniformly depressed.
+- Validation gained a cargo-class-only baseline and a cargo class recognition
+  section (`validation/cargo_class_calls.tsv`).
 - `score_tp_consensus`: BLOSUM62 similarity of each terminus to the published
   Family 1 targeting-peptide consensus `SDGSLGIGSLKRS` (Giessen & Silver 2017),
   reproducing the comparison Andreas & Giessen (2021) made with `blastp`. New
@@ -19,12 +32,13 @@
   control (`validation/prophage_control.tsv`).
 
 ### Changed
-- Default weights: `w_distance` 0.35 -> 0.30, `w_operon` 0.25 -> 0.20,
-  `w_tail_features` 0.25 -> 0.15, new `w_tp_consensus` 0.20. The invented
-  composition heuristic was down-weighted in favour of the signal with a
-  published basis, after the benchmark showed it ranked only 2 of 4 adjacent
-  cargos first against 4 of 4 for the consensus similarity. Scores from v0.1
-  are not comparable with these.
+- Default weights, now: `w_distance` 0.25, `w_operon` 0.15, `w_tp_consensus`
+  0.15, `w_cargo_class` 0.30, `w_tail_features` 0.05, `w_recurrence` 0.10
+  (v0.1 was 0.35/0.25/-/-/0.25/0.15). The invented composition heuristic was
+  down-weighted hard in favour of the two literature-grounded signals, after the
+  benchmark showed it ranked only 2 of 4 adjacent cargos first against 4 of 4
+  for both cargo class and consensus similarity. Scores from v0.1 are not
+  comparable with these.
 - README and `docs/methods.md` now state plainly that the method is not new and
   credit Andreas & Giessen (2021) as its source, and document that Family 2B and
   Family 3 have no Pfam profile and so cannot be detected at all.

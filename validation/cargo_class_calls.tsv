@@ -1,0 +1,11 @@
+organism	locus	cargo_class	pfam	encapsulin_specific	rank_in_shell	gene_distance	is_known_cargo
+Thermotoga maritima MSB8	TM0786	encapsulated_ferritin	PF22277	True	1	1	True
+Mycobacterium tuberculosis H37Rv	Rv0799c	dyp_peroxidase	PF20628	False	1	1	True
+Myxococcus xanthus DK 1622	MXAN_3557	encapsulated_ferritin	PF22277	True	1	1	True
+Pyrococcus furiosus DSM 3638	PF1192	encapsulated_ferritin	PF22277	True	1	1	False
+Pyrococcus furiosus DSM 3638	PF1193	ferritin_like	PF00210	False	2	2	False
+Pyrococcus furiosus DSM 3638	PF1190	rubrerythrin	PF02915	False	3	-1	False
+Pyrococcus furiosus DSM 3638	PF1195	rubrerythrin	PF02915	False	4	4	False
+Pyrococcus furiosus DSM 3638	PF1196	rubrerythrin	PF02915	False	5	5	False
+Rhodococcus jostii RHA1	RHA1_ro02407	dyp_peroxidase	PF20628	False	1	-1	True
+Rhodococcus erythropolis PR4	RER_59910	dyp_peroxidase	PF20628	False	1	1	True

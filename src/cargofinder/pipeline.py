@@ -8,6 +8,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
+from cargofinder.cargo import (
+    CargoClassHit,
+    classify_cargo_candidates,
+    find_cargo_class_profiles,
+)
 from cargofinder.cluster import (
     cluster_candidates,
     get_mmseqs_version,
@@ -16,7 +21,7 @@ from cargofinder.cluster import (
 from cargofinder.config import DEFAULT_SHELL_PROFILES, RunConfig, ScoringWeights
 from cargofinder.features import load_motif_patterns
 from cargofinder.genecalling import call_genes_from_genome_fasta
-from cargofinder.io import GenomeData, load_protein_and_gff3, namespace_genome
+from cargofinder.io import Gene, GenomeData, load_protein_and_gff3, namespace_genome
 from cargofinder.neighborhood import NeighborCandidate, extract_neighborhood
 from cargofinder.plotting import plot_neighborhood
 from cargofinder.profiles import (
@@ -54,6 +59,7 @@ class RunResult:
     summary: Dict[str, object]
     genomes: Optional[List[GenomeData]] = None
     prophage: Dict[str, ProphageEvidence] = field(default_factory=dict)
+    cargo_classes: Dict[str, CargoClassHit] = field(default_factory=dict)
 
 
 def resolve_profile_files(
@@ -325,6 +331,34 @@ def run_pipeline(
                 shells, out_p / "shells.tsv", prophage_evidence
             )
 
+    # 4c. Recognise known cargo classes among the candidates.
+    #
+    # Andreas & Giessen (2021) assigned cargo by identity, not position alone.
+    # See cargofinder.cargo for what a class match does and does not mean.
+    cargo_profiles = find_cargo_class_profiles(_profile_root(profile_dir, out_p))
+    scoring_weights = config.weights
+    cargo_classes: Dict[str, CargoClassHit] = {}
+    if cargo_profiles:
+        by_candidate_id = {c.candidate_id: c.candidate_gene for c in neighbor_cands}
+        # Classify each distinct gene once, then map back to candidate ids, since
+        # one gene can be a candidate for two overlapping shells.
+        unique: Dict[str, Gene] = {}
+        for cand in neighbor_cands:
+            unique.setdefault(cand.candidate_gene.gene_id, cand.candidate_gene)
+        by_gene = classify_cargo_candidates(
+            list(unique.values()),
+            cargo_profiles,
+            evalue_cutoff=config.evalue_cutoff,
+        )
+        for cand_id, gene in by_candidate_id.items():
+            hit = by_gene.get(gene.gene_id)
+            if hit is not None:
+                cargo_classes[cand_id] = hit
+    else:
+        # No profiles: drop the term and rescale, so totals stay on [0, 1] and
+        # remain comparable with runs that did have the profiles.
+        scoring_weights = config.weights.without_cargo_class()
+
     # 5. Cluster Candidate Sequences
     if len(shells) >= 2:
         logger.info("Step 5: Clustering neighbor sequences via MMseqs2...")
@@ -354,11 +388,12 @@ def run_pipeline(
     scored = score_candidates(
         candidates=neighbor_cands,
         cluster_result=cluster_res,
-        weights=config.weights,
+        weights=scoring_weights,
         window_size=config.window_size,
         tail_length=config.tail_length,
         motifs=motifs,
         termini=config.termini,
+        cargo_classes=cargo_classes,
     )
 
     for item in scored:
@@ -413,4 +448,5 @@ def run_pipeline(
         summary,
         genomes,
         prophage_evidence,
+        cargo_classes,
     )

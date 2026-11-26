@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-11-26T17:14:41.394980+00:00",
+  "timestamp_utc": "2026-11-26T17:51:21.063099+00:00",
   "cargofinder_version": "0.1.0",
   "environment": {
     "python": "3.12.15",
@@ -18,10 +18,10 @@
     "mmseqs_coverage": 0.8,
     "termini": "c",
     "scoring_weights": {
-      "w_distance": 0.3,
-      "w_operon": 0.2,
-      "w_tail_features": 0.15,
-      "w_recurrence": 0.15
+      "w_distance": 0.25,
+      "w_operon": 0.15,
+      "w_tail_features": 0.05,
+      "w_recurrence": 0.1
     }
   },
   "profiles": [

@@ -12,7 +12,10 @@ Biological and design principles:
 5. Terminal peptide composition: Hydrophobic terminus, flexible Gly/Ser linker,
    optional motifs. This component is a cargofinder heuristic with no published
    basis and is down-weighted accordingly.
-6. Cross-system recurrence: Homologous candidate families found next to independent
+6. Cargo class identity: whether the candidate matches a Pfam family marking a
+   known encapsulin cargo class. Andreas & Giessen (2021) assigned cargo this
+   way. See cargofinder.cargo for what a match does and does not mean.
+7. Cross-system recurrence: Homologous candidate families found next to independent
    shells across loci/genomes receive an evolutionary conservation bonus.
 """
 
@@ -22,6 +25,7 @@ import logging
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
+from cargofinder.cargo import CargoClassHit
 from cargofinder.cluster import ClusterResult
 from cargofinder.config import ScoringWeights
 from cargofinder.features import PeptideFeatures, compute_peptide_features
@@ -42,6 +46,7 @@ class ScoredCandidate:
     score_distance: float
     score_operon: float
     score_tp_consensus: float
+    score_cargo_class: float
     score_tail_features: float
     score_recurrence: float
     gene_distance: int
@@ -60,6 +65,9 @@ class ScoredCandidate:
     # Prophage context is evidence about the shell locus, not about this
     # candidate being cargo, so it is reported but never added to score_total.
     # Populated by the pipeline after scoring; see cargofinder.prophage.
+    cargo_class: str = ""
+    cargo_class_pfam: str = ""
+    cargo_class_specific: bool = False
     prophage_marker_count: int = 0
     prophage_marker_families: int = 0
     is_probable_prophage_locus: bool = False
@@ -80,6 +88,10 @@ class ScoredCandidate:
             "score_distance": round(self.score_distance, 4),
             "score_operon": round(self.score_operon, 4),
             "score_tp_consensus": round(self.score_tp_consensus, 4),
+            "score_cargo_class": round(self.score_cargo_class, 4),
+            "cargo_class": self.cargo_class,
+            "cargo_class_pfam": self.cargo_class_pfam,
+            "cargo_class_specific": self.cargo_class_specific,
             "score_tail_features": round(self.score_tail_features, 4),
             "score_recurrence": round(self.score_recurrence, 4),
             "best_terminus": self.best_terminus,
@@ -213,6 +225,7 @@ def score_candidates(
     tail_length: int = 20,
     motifs: Optional[Dict[str, str]] = None,
     termini: str = "c",
+    cargo_classes: Optional[Dict[str, CargoClassHit]] = None,
 ) -> List[ScoredCandidate]:
     """Score and rank all neighbor candidates.
 
@@ -232,6 +245,11 @@ def score_candidates(
         Targeting peptide regex motifs.
     termini : str
         'c' scores the C-terminus only; 'both' uses the better of the two termini.
+    cargo_classes : dict of str -> CargoClassHit, optional
+        Known cargo class calls keyed by candidate_id. When omitted, the cargo
+        class component scores 0 for every candidate; the caller is expected to
+        pass weights from `ScoringWeights.without_cargo_class()` in that case so
+        totals stay on the same scale.
 
     Returns
     -------
@@ -264,12 +282,15 @@ def score_candidates(
             feats, has_motifs=has_motifs, termini=termini
         )
         s_tp = score_tp_consensus(feats, termini=termini)
+        cargo_hit = (cargo_classes or {}).get(cid)
+        s_cargo = cargo_hit.score if cargo_hit is not None else 0.0
         s_rec = compute_recurrence_score(shell_count)
 
         total = (
             weights.w_distance * s_dist
             + weights.w_operon * s_op
             + weights.w_tp_consensus * s_tp
+            + weights.w_cargo_class * s_cargo
             + weights.w_tail_features * s_tail
             + weights.w_recurrence * s_rec
         )
@@ -284,6 +305,12 @@ def score_candidates(
                 score_distance=s_dist,
                 score_operon=s_op,
                 score_tp_consensus=s_tp,
+                score_cargo_class=s_cargo,
+                cargo_class=cargo_hit.cargo_class if cargo_hit else "",
+                cargo_class_pfam=cargo_hit.pfam_id if cargo_hit else "",
+                cargo_class_specific=(
+                    cargo_hit.encapsulin_specific if cargo_hit else False
+                ),
                 score_tail_features=s_tail,
                 score_recurrence=s_rec,
                 gene_distance=cand.gene_distance,
