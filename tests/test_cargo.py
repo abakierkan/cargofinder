@@ -113,3 +113,32 @@ def test_classify_with_no_profiles_or_no_genes_returns_empty():
 @pytest.mark.parametrize("field", ["cargo_class", "pfam_id"])
 def test_hit_carries_identifying_fields(field):
     assert getattr(_hit("PF22277", True), field)
+
+
+def test_n_terminal_extension_is_measured_from_the_domain_start():
+    hit = CargoClassHit(
+        gene_id="g",
+        cargo_class="cysteine_desulfurase",
+        pfam_id="PF00266",
+        profile_name="Aminotran_5",
+        evalue=1e-100,
+        encapsulin_specific=False,
+        first_domain_start=243,
+        protein_length=626,
+    )
+    assert hit.n_terminal_extension_aa == 242
+
+
+def test_extension_defaults_to_zero_and_never_goes_negative():
+    assert _hit("PF22277", True).n_terminal_extension_aa == 0
+    odd = CargoClassHit(
+        gene_id="g",
+        cargo_class="c",
+        pfam_id="PF00210",
+        profile_name="Ferritin",
+        evalue=1e-9,
+        encapsulin_specific=False,
+        first_domain_start=0,
+        protein_length=100,
+    )
+    assert odd.n_terminal_extension_aa == 0

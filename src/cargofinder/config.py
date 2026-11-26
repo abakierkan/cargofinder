@@ -22,6 +22,7 @@ Names and accessions were checked against the InterPro API on 2026-10-31
 """
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
@@ -71,6 +72,52 @@ EXTENDED_SHELL_PROFILES: Dict[str, ShellProfileDef] = {
         default_evalue=1e-5,
     ),
 }
+
+
+# How each shell family recruits its cargo, which decides what "targeting signal"
+# means for candidates at that locus.
+#
+# Andreas & Giessen (2021) Nat Commun 12:4748, doi:10.1038/s41467-021-25071-y:
+# "In classical encapsulins (Family 1), encapsulation is mediated by short
+# C-terminal peptide sequences referred to as targeting peptides (TPs) or
+# cargo-loading peptides (CLPs), while for Family 2 systems, larger N-terminal
+# protein domains are proposed to mediate encapsulation."
+#
+# Scoring every candidate against a C-terminal Family 1 consensus is therefore
+# wrong at a Family 2 locus, where no short targeting peptide exists at all:
+# "While no specific targeting peptide has been identified in CD systems, the
+# unannotated N-terminal domain has been shown to be responsible for mediating
+# encapsulation."
+TARGETING_MODE_C_TERMINAL = "c_terminal_tp"
+TARGETING_MODE_N_TERMINAL = "n_terminal_extension"
+
+#: Maps shell Pfam accession to the targeting mode used for its candidates.
+TARGETING_MODE_BY_PROFILE: Dict[str, str] = {
+    "PF04454": TARGETING_MODE_C_TERMINAL,  # Family 1
+    "PF19307": TARGETING_MODE_N_TERMINAL,  # Family 2A
+}
+
+#: Mode used when the shell profile is not in the map above. Family 4B (PF08967)
+#: and any user-supplied profile land here. This is a documented fallback, not a
+#: claim about those families; every output row records the mode actually used.
+TARGETING_MODE_DEFAULT = TARGETING_MODE_C_TERMINAL
+
+# N-terminal extension length, in residues, bounding the Family 2 targeting
+# score. Anchored to the truncation series in Nichols RJ et al. (2021) eLife
+# 10:e59288, doi:10.7554/eLife.59288, for the S. elongatus SrpI cysteine
+# desulfurase (CyD): "The entire 225 amino acid N-terminal domain from CyD fused
+# to sfGFP (CyD 1-225-sfGFP) yielded the highest loading signal. Targeting with
+# the first 100 amino acids of the NTD also functioned, albeit not as
+# efficiently"; while "CyD 155-183-sfGFP, containing the conserved motif of
+# 'AASPYYFLDG', was not sufficient to sequester cargo", and a mutant lacking the
+# whole NTD "was not measurably encapsulated".
+#
+# So an extension of about 30 residues is known not to work and 225 is known to
+# work best. The score ramps linearly between them; 100 residues lands at ~0.36,
+# consistent with "functioned, albeit not as efficiently". The linear shape
+# between the anchors is a judgment call.
+NTERM_EXTENSION_MIN_AA = 30
+NTERM_EXTENSION_FULL_AA = 225
 
 
 @dataclass(frozen=True)
@@ -232,15 +279,47 @@ PHAGE_MARKER_SUBDIR = "phage_markers"
 PHAGE_MARKER_FLAG_THRESHOLD = 2
 
 
+#: A syntactically valid Pfam accession: PF followed by five digits.
+PFAM_ACCESSION_RE = re.compile(r"^PF\d{5}$")
+
+
 def select_profiles(extra: Sequence[str] = ()) -> List[ShellProfileDef]:
-    """Return the default profiles plus the requested extended profiles."""
-    unknown = sorted(set(extra) - set(EXTENDED_SHELL_PROFILES))
-    if unknown:
-        raise ValueError(
-            f"Unknown extra profile(s) {unknown}. "
-            f"Available: {sorted(EXTENDED_SHELL_PROFILES)}"
+    """Return the default profiles plus the requested extra profiles.
+
+    Accessions in EXTENDED_SHELL_PROFILES come with a curated description. Any
+    other syntactically valid Pfam accession is accepted too and fetched as-is,
+    so that families cargofinder does not know about can still be scanned. Such
+    a profile carries no claim that it detects an encapsulin: that is the
+    caller's judgement, and the run summary records what was used.
+
+    Note that Family 2B and Family 3 encapsulins have no Pfam entry at all, so
+    covering them needs a custom HMM supplied through `--profiles`, not this.
+    """
+    profiles = list(DEFAULT_SHELL_PROFILES)
+    for acc in extra:
+        known = EXTENDED_SHELL_PROFILES.get(acc)
+        if known is not None:
+            profiles.append(known)
+            continue
+        if not PFAM_ACCESSION_RE.match(acc):
+            raise ValueError(
+                f"{acc!r} is not a Pfam accession (expected PF followed by five "
+                f"digits, e.g. PF19307). Curated choices: "
+                f"{sorted(EXTENDED_SHELL_PROFILES)}. To use a profile that is "
+                f"not in Pfam, put the .hmm file in a directory and pass "
+                f"--profiles <dir>."
+            )
+        profiles.append(
+            ShellProfileDef(
+                family=f"User-requested ({acc})",
+                pfam_id=acc,
+                description=(
+                    f"{acc}, requested by the user. cargofinder makes no claim "
+                    f"that this family detects encapsulin shells."
+                ),
+            )
         )
-    return DEFAULT_SHELL_PROFILES + [EXTENDED_SHELL_PROFILES[e] for e in extra]
+    return profiles
 
 
 @dataclass
@@ -249,7 +328,7 @@ class ScoringWeights:
 
     Score = w_distance * S_distance
           + w_operon * S_operon
-          + w_tp_consensus * S_tp_consensus
+          + w_targeting * S_targeting
           + w_cargo_class * S_cargo_class
           + w_tail_features * S_tail_features
           + w_recurrence * S_recurrence
@@ -278,7 +357,7 @@ class ScoringWeights:
 
     w_distance: float = 0.25
     w_operon: float = 0.15
-    w_tp_consensus: float = 0.15
+    w_targeting: float = 0.15
     w_cargo_class: float = 0.30
     w_tail_features: float = 0.05
     w_recurrence: float = 0.10
@@ -288,7 +367,7 @@ class ScoringWeights:
         weights = [
             self.w_distance,
             self.w_operon,
-            self.w_tp_consensus,
+            self.w_targeting,
             self.w_cargo_class,
             self.w_tail_features,
             self.w_recurrence,
@@ -309,7 +388,7 @@ class ScoringWeights:
         remaining = (
             self.w_distance
             + self.w_operon
-            + self.w_tp_consensus
+            + self.w_targeting
             + self.w_tail_features
             + self.w_recurrence
         )
@@ -321,7 +400,7 @@ class ScoringWeights:
         return ScoringWeights(
             w_distance=self.w_distance * factor,
             w_operon=self.w_operon * factor,
-            w_tp_consensus=self.w_tp_consensus * factor,
+            w_targeting=self.w_targeting * factor,
             w_cargo_class=0.0,
             w_tail_features=self.w_tail_features * factor,
             w_recurrence=self.w_recurrence * factor,

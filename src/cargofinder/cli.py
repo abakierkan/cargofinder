@@ -94,7 +94,14 @@ def build_parser() -> argparse.ArgumentParser:
         "-p",
         type=Path,
         default=None,
-        help="Directory containing shell HMM profile models (.hmm).",
+        help=(
+            "Directory containing shell HMM profile models (.hmm). Every .hmm "
+            "directly inside it is used as a shell profile, so custom HMMs can "
+            "be scanned here; that is the only way to cover Family 2B and "
+            "Family 3, which have no Pfam entry. Its phage_markers/ and "
+            "cargo_classes/ subdirectories, if present, are used for prophage "
+            "screening and cargo class recognition."
+        ),
     )
     run_parser.add_argument(
         "--motifs",
@@ -163,8 +170,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         metavar="PFAM_ID",
         help=(
-            "Additional profiles to fetch; choose from "
-            f"{', '.join(sorted(EXTENDED_SHELL_PROFILES))}."
+            "Additional shell profiles to fetch. Curated choices: "
+            f"{', '.join(sorted(EXTENDED_SHELL_PROFILES))}. Any other Pfam "
+            "accession (PFxxxxx) is fetched as given, with no claim that it "
+            "detects encapsulins. Family 2B and Family 3 have no Pfam entry, so "
+            "they need a custom .hmm passed via 'run --profiles <dir>'."
         ),
     )
     fetch_parser.add_argument(

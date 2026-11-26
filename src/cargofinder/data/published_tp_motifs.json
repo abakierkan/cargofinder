@@ -2,7 +2,7 @@
   "_README": {
     "regex": "(?!)",
     "citation": "This entry is documentation, not a motif. Its regex never matches.",
-    "description": "Targeting-peptide (TP) motifs taken from published experimental and modelling work on Family 1 encapsulins. Every entry below quotes the sentence it came from so you can check it against the paper. These are ANCHOR motifs: short, degenerate patterns that match by chance at appreciable rates in any protein terminus. They are hints that rank candidates, never evidence of encapsulation. Pass this file with --motifs to use it; it is NOT applied by default. Motifs are matched against the terminal slice only, not the whole protein.",
+    "description": "Targeting-peptide (TP) motifs taken from published experimental and modelling work on Family 1 encapsulins. Every entry below quotes the sentence it came from so you can check it against the paper. These are ANCHOR motifs: short, degenerate patterns that match by chance at appreciable rates in any protein terminus. They are hints that rank candidates, never evidence of encapsulation. Pass this file with --motifs to use it; it is NOT applied by default. Motifs are matched against the terminal slice only, not the whole protein, so a motif lying deep inside a long N-terminal domain (such as f2a_cyd_ntd_motif) will only match if --tail is long enough to reach it.",
     "verified": true
   },
   "f1_tp_consensus_core": {
@@ -33,6 +33,12 @@
     "regex": "[KR].{0,3}$",
     "citation": "Altenburg WJ et al. (2021) Sci Rep 11:4951, doi:10.1038/s41598-021-84329-z: 'the lysine residues at or close to the C-terminus, present in both the native and consensus T1 TPs, interact with a negative surface patch of the T1 encapsulin.' The point-mutation scan found most substitutions at the last three residues impaired binding, and R9A reduced loading experimentally.",
     "description": "A basic residue within the last four positions, pairing with the shell's negative surface patch. Anchored to the end of the slice, so only meaningful when matched against a C-terminal slice.",
+    "verified": true
+  },
+  "f2a_cyd_ntd_motif": {
+    "regex": "AASPYYFLDG",
+    "citation": "Nichols RJ, LaFrance B, Phillips NR, Radford DR, Oltrogge LM, Valentin-Alvarado LE, Bischoff AJ, Nogales E, Savage DF (2021) eLife 10:e59288, doi:10.7554/eLife.59288, which reports 'two motifs' conserved in the disordered N-terminal domain of the SrpI-associated cysteine desulfurase (CyD) and names this one when describing the construct 'CyD 155-183-sfGFP, containing the conserved motif of AASPYYFLDG'.",
+    "description": "A conserved motif inside the Family 2A CyD N-terminal targeting domain. IMPORTANT: the same paper showed this motif is NOT sufficient on its own; the 29-residue CyD 155-183 fragment carrying it 'was not sufficient to sequester cargo within the compartment', whereas the full 225-residue domain loaded best. Treat a match as a recognition hint for Family 2A cargo, never as evidence of targeting. cargofinder scores Family 2A targeting by N-terminal extension length, not by this motif.",
     "verified": true
   }
 }

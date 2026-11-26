@@ -53,7 +53,7 @@ not in those datasets, and for seeing why each candidate ranks where it does.
 
 ## 3. Scoring
 
-$$\text{Score} = 0.25\,S_\text{distance} + 0.15\,S_\text{operon} + 0.15\,S_\text{TP} + 0.30\,S_\text{cargo} + 0.05\,S_\text{tail} + 0.10\,S_\text{recurrence}$$
+$$\text{Score} = 0.25\,S_\text{distance} + 0.15\,S_\text{operon} + 0.15\,S_\text{target} + 0.30\,S_\text{cargo} + 0.05\,S_\text{tail} + 0.10\,S_\text{recurrence}$$
 
 Weights must be non-negative and sum to 1. Defaults are in `src/cargofinder/data/default_weights.json`; override them with `--weights`. Each row reports all four components.
 
@@ -62,14 +62,14 @@ Weights must be non-negative and sum to 1. Defaults are in `src/cargofinder/data
 | $S_\text{distance}$ | $(W - d + 1) / W$ for gene distance $d \le W$. With $W=5$: 1.0, 0.8, 0.6, 0.4, 0.2 |
 | $S_\text{operon}$ | 1.0 for a likely operon member, 0.5 for same strand otherwise, 0.0 for opposite strand |
 | $S_\text{cargo}$ | 1.0 if the candidate matches an encapsulin-cargo-specific Pfam family (PF22277, PF24309), 0.6 for a broad cargo-class family, 0.0 for no match |
-| $S_\text{TP}$ | Best normalised ungapped BLOSUM62 similarity of the terminal slice to the published Family 1 TP consensus `SDGSLGIGSLKRS`, divided by the consensus self-score and clamped to $[0,1]$ |
+| $S_\text{target}$ | **Family 1 shell:** best normalised ungapped BLOSUM62 similarity of the terminal slice to the published Family 1 TP consensus `SDGSLGIGSLKRS`. **Family 2A shell:** length of the unannotated N-terminal extension, ramped from 0 at 30 residues to 1 at 225. See section 3c |
 | $S_\text{tail}$ | $0.6\,h + 0.4\,\min(1, g / 0.35)$, where $h$ is the fraction of A, V, I, L, M, F, W, P and $g$ is the fraction of G, S |
 | $S_\text{tail}$ with motifs | $0.8 \times$ the above $+\ 0.2\,m$, where $m$ is 1 if any motif matches the C-terminus |
 | $S_\text{recurrence}$ | 0.2 for one shell, 0.6 for two, 1.0 for three or more shells in the cluster |
 
 **Why these weights.** They are judgment calls, not fitted values. Adjacency gets
-the most weight because it is the best documented signal. $S_\text{TP}$ gets more
-than $S_\text{tail}$ because it compares against a published consensus, whereas
+the most weight because it is the best documented signal. $S_\text{target}$ gets more
+than $S_\text{tail}$ because it rests on published, family-specific evidence, whereas
 $S_\text{tail}$ is a cargofinder heuristic with no literature basis. Recurrence
 gets the least because it depends on what else is in the run. $S_\text{cargo}$
 gets the largest single weight because cargo identity is the evidence the
@@ -80,7 +80,7 @@ If no cargo class profiles are available, the term is dropped and the remaining
 weights are rescaled to sum to 1, so totals stay on $[0,1]$ and remain
 comparable with runs that had the profiles.
 
-**On $S_\text{TP}$.** This reproduces, in a small deterministic form, the
+**On $S_\text{target}$ in C-terminal mode.** This reproduces, in a small deterministic form, the
 comparison Andreas & Giessen (2021) made with `blastp` against the same
 consensus. It is not BLAST: there is no E-value and no significance claim, only a
 bounded similarity. Two caveats matter when reading the number:
@@ -101,12 +101,60 @@ produce the benchmark numbers. Each one is three to six residues long and will
 match many non-cargo termini by chance.
 
 **What the benchmark says about these components.** On the six adjacent cargos,
-$S_\text{TP}$ alone ranks all 6 first, as does $S_\text{cargo}$; adjacency alone
+$S_\text{target}$ alone ranks all 6 first, as does $S_\text{cargo}$; adjacency alone
 ranks 5 of 6 first; the composition heuristic $S_\text{tail}$ alone ranks 3 of 6
 first. Six cases is far too few to call that a result, and several of the systems
 are related to one another, but it is the reason $S_\text{tail}$ was cut from
 0.25 to 0.05 in favour of the two signals with a literature basis. See
 `validation/report.md`.
+
+## 3c. Family-aware targeting
+
+Families do not recruit cargo the same way, so one targeting formula cannot
+serve them all. Andreas & Giessen (2021): "In classical encapsulins (Family 1),
+encapsulation is mediated by short C-terminal peptide sequences referred to as
+targeting peptides (TPs) ... while for Family 2 systems, larger N-terminal
+protein domains are proposed to mediate encapsulation." For Family 2 cysteine
+desulfurases specifically, "no specific targeting peptide has been identified",
+and "the unannotated N-terminal domain has been shown to be responsible for
+mediating encapsulation."
+
+Scoring a Family 2 candidate against a Family 1 C-terminal consensus therefore
+measures nothing at all. $S_\text{target}$ picks its mode from the Pfam family
+of the shell that found the locus:
+
+| Shell profile | Family | Targeting mode |
+| :--- | :--- | :--- |
+| PF04454 | 1 | C-terminal TP consensus similarity |
+| PF19307 | 2A | N-terminal extension length |
+| anything else | unknown | C-terminal, as a documented fallback |
+
+The mode used is recorded in `targeting_mode` on every row, so the fallback is
+never silent.
+
+**Measuring the extension.** It is the number of residues before the *earliest*
+domain found by *any* cargo class profile. Taking the best-scoring domain
+instead would be wrong: a DyP peroxidase matches `Dyp_perox_C` around residue
+140, so the best hit alone implies a spurious ~140-residue "extension" for an
+ordinary two-domain protein. Measured from the earliest domain, the benchmark's
+Family 1 cargos have extensions of 3, 7, 8 and 11 residues, while the Family 2A
+cargo has 242.
+
+**The bounds come from an experiment, not from taste.** Nichols et al. (2021)
+fused truncations of the *S. elongatus* CyD N-terminal domain to sfGFP: the full
+225-residue domain "yielded the highest loading signal", the first 100 residues
+"also functioned, albeit not as efficiently", a 29-residue fragment carrying a
+conserved motif "was not sufficient to sequester cargo", and deleting the domain
+abolished loading. So the score is 0 at and below 30 residues and 1.0 at 225,
+ramping linearly between; 100 residues lands at about 0.36. The linear shape
+between the anchors is a judgment call, the anchors are not.
+
+**Limits.** The extension can only be measured where a cargo class domain is
+recognised, so a Family 2 candidate of an unknown class scores 0 — the same as
+a candidate with no extension. Length is also a crude proxy for what is really
+a disordered-domain interaction; the paper used DISOPRED3 to show the domain is
+disordered, which cargofinder does not attempt. And Family 2B has no Pfam shell
+profile, so it never reaches this code path at all.
 
 ## 3b. Cargo class recognition
 
@@ -217,9 +265,11 @@ encapsulin".
    phage capsid family. **Family 2B and Family 3 have no Pfam profile at all**,
    so cargofinder cannot detect them, and no option changes that. Andreas &
    Giessen (2021) built custom HMMs for Family 2 and Family 3 precisely because
-   no Pfam entry existed; supporting user-supplied custom profiles is the right
-   fix and is on the roadmap. PF05065 is a general phage capsid family, so expect
-   prophage hits if you add it.
+   no Pfam entry existed. Any `.hmm` placed in the directory given to
+   `--profiles` is scanned as a shell profile, which is how to cover them;
+   `fetch-profiles --extra` also accepts any Pfam accession, though cargofinder
+   makes no claim that an arbitrary family detects encapsulins. PF05065 is a
+   general phage capsid family, so expect prophage hits if you add it.
 6. **E-value depends on the sequences searched**, including the length filter, so values are not comparable across differently sized inputs.
 7. **Recurrence can be inflated** by tandem shells whose windows overlap, because it counts shells rather than independent loci.
 

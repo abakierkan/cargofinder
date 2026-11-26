@@ -132,13 +132,14 @@ def cargo_class_key(c: ScoredCandidate) -> float:
     return c.score_cargo_class
 
 
-def tp_consensus_key(c: ScoredCandidate) -> float:
-    """BLOSUM62 similarity to the published Family 1 TP consensus alone.
+def targeting_key(c: ScoredCandidate) -> float:
+    """The family-aware targeting signal alone.
 
-    This is the comparison that matters for v0.2: the published signal against
-    the composition heuristic it was meant to replace.
+    For a Family 1 shell this is BLOSUM62 similarity to the published Family 1
+    TP consensus; for a Family 2A shell it is the unannotated N-terminal
+    extension length, since Family 2 has no short targeting peptide.
     """
-    return c.score_tp_consensus
+    return c.score_targeting
 
 
 def fetch(url: str, out_path: Path) -> Path:
@@ -228,7 +229,7 @@ def evaluate_row(
 
     adjacency_rank, adjacency_ties = relative_rank(target, in_shell, adjacency_key)
     tail_rank, tail_ties = relative_rank(target, in_shell, tail_key)
-    tp_rank, tp_ties = relative_rank(target, in_shell, tp_consensus_key)
+    tp_rank, tp_ties = relative_rank(target, in_shell, targeting_key)
     cc_rank, cc_ties = relative_rank(target, in_shell, cargo_class_key)
     out.update(
         {
@@ -375,7 +376,7 @@ def build_report(
                 "tail only (composition), adjacent cargos": (
                     f"{baseline_hits(adjacent, 'tail_only', k)}/{len(adjacent)}"
                 ),
-                "TP consensus only, adjacent cargos": (
+                "targeting signal only, adjacent cargos": (
                     f"{baseline_hits(adjacent, 'tp_only', k)}/{len(adjacent)}"
                 ),
                 "cargo class only, adjacent cargos": (
@@ -459,9 +460,17 @@ Reported separately:
 
 ## Family 2A sensitivity run
 
-*S. elongatus* plasmid scanned with `PF19307`, under C-terminal scoring and
-`--termini both`. This cargo uses an N-terminal targeting sequence (Nichols et al.
-2021).
+*S. elongatus* plasmid scanned with `PF19307`. The default PF04454 profile does
+not detect this Family 2A shell at all, which is why the main table above counts
+this system as missed; with the right profile the shell is found.
+
+This cargo is targeted by a disordered N-terminal domain, not a C-terminal
+peptide (Nichols et al. 2021). Because the shell matches PF19307, cargofinder
+switches the targeting component to N-terminal extension length automatically,
+so the `--termini` setting barely matters here: it only affects the C-terminal
+mode. The cargo carries a 242-residue extension before its Aminotran_5 domain,
+against the 225-residue domain characterised in that paper, so it scores the
+maximum.
 
 {markdown_table(sensitivity)}
 

@@ -10,7 +10,7 @@ This is a reproducible ranking tool, not a discovery claim. Every candidate is a
 
 1. **Position**: distance in genes, strand, and intergenic gaps.
 2. **Cargo class identity**: whether the gene is a known encapsulin cargo class (DyP peroxidase, encapsulated ferritin, cysteine desulfurase, terpene cyclase and others), by Pfam profile.
-3. **Targeting-peptide similarity**: BLOSUM62 similarity of each terminus to the published Family 1 targeting-peptide consensus `SDGSLGIGSLKRS` (Giessen & Silver 2017).
+3. **Targeting signal**, chosen by shell family: a C-terminal targeting-peptide consensus for Family 1, or the length of the unannotated N-terminal domain for Family 2A, which has no short targeting peptide.
 4. **Terminal peptide composition**: hydrophobic and Gly/Ser content, plus optional motif regexes.
 5. **Recurrence**: whether a gene family sits next to shells in several genomes (MMseqs2).
 
@@ -78,6 +78,11 @@ cargofinder run genome1.fasta genome2.fasta genome3.fasta --out results/
 cargofinder fetch-profiles --out profiles/ --extra PF19307
 cargofinder run genome.fasta --profiles profiles/ --termini both --out results/
 
+# Scan your own HMM alongside the Pfam ones. Any .hmm in the directory is used
+# as a shell profile, which is the only way to cover Family 2B and Family 3.
+cp my_family3.hmm profiles/
+cargofinder run genome.fasta --profiles profiles/ --out results/
+
 # Use the published targeting-peptide anchor motifs, and drop prophage loci
 cargofinder run genome.fasta --out results/ \
     --motifs src/cargofinder/data/published_tp_motifs.json \
@@ -104,7 +109,7 @@ The score is a weighted sum. Weights are in [default_weights.json](src/cargofind
 | `score_distance` | 0.25 | 1.0 for the adjacent gene, falling by 1/W per gene (W = window) |
 | `score_operon` | 0.15 | 1.0 likely operon, 0.5 same strand, 0.0 opposite strand |
 | `score_cargo_class` | 0.30 | 1.0 for an encapsulin-cargo-specific Pfam family, 0.6 for a broad cargo-class family, 0.0 for no match |
-| `score_tp_consensus` | 0.15 | Normalised BLOSUM62 similarity of the terminus to the published Family 1 TP consensus `SDGSLGIGSLKRS` |
+| `score_targeting` | 0.15 | Family-aware. Family 1 shell: BLOSUM62 similarity of the terminus to the published TP consensus `SDGSLGIGSLKRS`. Family 2A shell: length of the unannotated N-terminal extension |
 | `score_tail_features` | 0.05 | 0.6 × hydrophobic fraction + 0.4 × min(1, Gly/Ser fraction / 0.35); motif matches, if used, take 20% |
 | `score_recurrence` | 0.10 | 0.2 for one shell, 0.6 for two, 1.0 for three or more |
 
@@ -117,10 +122,16 @@ It is weighted at 0.30 rather than higher because of two hard limits:
 - **It cannot separate cargo from a co-located paralogue.** Every non-cargo class match in the benchmark was in the *P. furiosus* iron-homeostasis locus — a further ferritin-like protein and three rubrerythrins, which genuinely are that class of enzyme.
 - **It only recognises cargo classes that are already known.** Novel cargo scores zero, so a candidate with no class match is *not* excluded. Never read this component as a filter.
 
-`score_tp_consensus` reproduces, in a small deterministic form, the comparison Andreas & Giessen (2021) made with `blastp` against the same consensus. It is not BLAST and carries no E-value or significance claim. Two things to know before reading the number:
+In C-terminal mode `score_targeting` reproduces, in a small deterministic form, the comparison Andreas & Giessen (2021) made with `blastp` against the same consensus. It is not BLAST and carries no E-value or significance claim. Two things to know before reading the number:
 
 - The consensus is itself Gly/Ser-rich, so generic Gly/Ser linkers score around 0.3 as background. The `GGSGGSGGSGG` control peptide, which Altenburg et al. (2021) showed does **not** bind the shell pocket, scores about as high as some native targeting peptides.
-- It is a **Family 1** consensus. Family 2 and Family 4 cargo have no reason to match it.
+- It is a **Family 1** consensus, so it is only applied at Family 1 loci (see below).
+
+**Family-aware targeting.** Families do not recruit cargo the same way, so one formula cannot serve them all. Family 1 uses a short C-terminal targeting peptide; Family 2 uses a large, disordered N-terminal domain and has no short peptide at all. `cargofinder` picks the mode from the shell's Pfam family (PF04454 → C-terminal, PF19307 → N-terminal, anything else → C-terminal as a documented fallback) and records it in the `targeting_mode` column.
+
+For the N-terminal mode the bounds come from an experiment rather than taste: Nichols et al. (2021) found the full 225-residue *S. elongatus* CyD N-terminal domain loaded cargo best, the first 100 residues worked less well, and a 29-residue fragment did not work at all. The score is 0 at 30 residues and 1.0 at 225. The extension is measured before the *earliest* recognised domain, not the best-scoring one — otherwise a two-domain DyP peroxidase would appear to have a 140-residue extension.
+
+This is what fixed the *S. elongatus* case: that cargo went from rank 3 to **rank 1** once it stopped being scored against a Family 1 C-terminal consensus it has no reason to match.
 
 Anchor motifs resolved experimentally by [Altenburg et al. (2021)](https://doi.org/10.1038/s41598-021-84329-z) ship in [published_tp_motifs.json](src/cargofinder/data/published_tp_motifs.json), each quoting the sentence it came from. They are opt-in via `--motifs`, were not used for the benchmark below, and are three to six residues long, so they match many non-cargo termini by chance.
 
@@ -134,10 +145,10 @@ Run on one complete NCBI replicon for each of nine organisms, with default param
 | Those encoded next to the shell | 6 / 6 |
 | Adjacent cargos, position alone (ties count against) | 5 / 6 |
 | Adjacent cargos, cargo class alone | 6 / 6 |
-| Adjacent cargos, TP consensus similarity alone | 6 / 6 |
+| Adjacent cargos, targeting signal alone | 6 / 6 |
 | Adjacent cargos, composition heuristic alone (ties count against) | 3 / 6 |
 
-Cargo class and TP consensus each rank all six known adjacent cargos first; position alone gets 5 of 6; the composition heuristic gets 3 of 6. **Six cases is still far too few to call that a result**, and several systems are related to one another. It is, however, why the composition heuristic was down-weighted and the two literature-grounded signals were brought in, and all components are reported separately so you can check them on your own data.
+Cargo class and the targeting signal each rank all six known adjacent cargos first; position alone gets 5 of 6; the composition heuristic gets 3 of 6. **Six cases is still far too few to call that a result**, and several systems are related to one another. It is, however, why the composition heuristic was down-weighted and the two literature-grounded signals were brought in, and all components are reported separately so you can check them on your own data.
 
 Every known cargo in a window was given a biologically correct class: the ferritin-like cargos as encapsulated ferritin, the peroxidases as DyP. Of 80 candidates scanned, 12 matched some cargo class; the non-cargo matches were all co-located ferritin-like and rubrerythrin genes in the *P. furiosus* iron locus, and adding two further genomes added none. Full table in [validation/report.md](validation/report.md) and [cargo_class_calls.tsv](validation/cargo_class_calls.tsv).
 
@@ -157,7 +168,7 @@ Every known cargo in a window was given a biologically correct class: the ferrit
 
 Failures and caveats:
 
-- *S. elongatus* with `PF19307` added: the shell is detected, but the cargo ranks only 3rd of 10, with or without `--termini both`. Expected: this cargo uses an N-terminal targeting sequence and is not Family 1, so the Family 1 consensus does not help it.
+- *S. elongatus* with `PF19307` added: the shell is detected and the cargo now ranks **1st of 10**, because the targeting component switches to N-terminal mode for a Family 2A shell. With the default profile set the shell is not detected at all, which is why the table above still counts this system as missed.
 - *P. furiosus* is a **false positive of the benchmark design**, not a recovery. `PF1192` ranks first, but it and `PF1191` are one 345-aa protein in PDB 2E0Z, split in two by the annotation. Notably the TP consensus signal ranks it 9th of 10, correctly declining to support the artifact that adjacency ranks 1st.
 - *R. erythropolis* PR4 `RER_59910` ranks first, but it is not counted: the experiments we found used strain N771, so this row is homology-inferred.
 - **False flags**: the top-3 list per shell is in [false_flags.tsv](validation/false_flags.tsv). Unconfirmed is not the same as proven non-cargo.
@@ -179,15 +190,16 @@ pixi run python validation/run_validation.py
 - **Adjacency is not proof.** Some cargo is encoded elsewhere or fused to the shell, and fusions annotated as two genes can look like adjacent cargo.
 - **Cargo without a recognizable terminal peptide will be missed** or get no tail credit. By default only the C-terminus is scored.
 - **Novel cargo classes cannot be recognised.** `score_cargo_class` only knows the classes already in the literature, so genuinely new cargo gets nothing from the component that carries the most weight.
-- **Only PF04454 is scanned by default.** Family 2A requires `--extra PF19307`, Family 4B `--extra PF08967`. Checked against Pfam clan CL0373 on 2026-11-26, those three are the only encapsulin-specific Pfam families; every other clan member is a phage capsid family. **Family 2B and Family 3 have no Pfam profile at all**, so `cargofinder` cannot detect them and no option changes that. PF05065 is a general phage capsid family, so expect prophage hits.
+- **Only PF04454 is scanned by default.** Family 2A requires `--extra PF19307`, Family 4B `--extra PF08967`. Checked against Pfam clan CL0373 on 2026-11-26, those three are the only encapsulin-specific Pfam families; every other clan member is a phage capsid family. **Family 2B and Family 3 have no Pfam profile at all**: to cover them you must supply your own HMM (see below). PF05065 is a general phage capsid family, so expect prophage hits.
+- **Targeting mode for unknown families is a guess.** Only Family 1 and Family 2A have a documented mechanism here; everything else falls back to C-terminal scoring. Check the `targeting_mode` column.
 - **Shell hits can be phage.** Encapsulin shells share the HK97 fold with phage capsids, so prophage context is screened and reported, but the screen catches only some prophages (2 of 9 in the benchmark control).
 - Contigs are treated as linear, so windows do not wrap around circular replicons.
 - Scores from single-genome and multi-genome runs are not comparable, because recurrence is constant with one shell.
 
 ## Roadmap
 
-- User-supplied custom HMM profiles, so Family 2B and Family 3 can be covered at all; Andreas & Giessen (2021) had to build custom HMMs for exactly this reason.
-- Family-aware targeting-peptide references, instead of one Family 1 consensus for every shell.
+- Disorder prediction for Family 2 N-terminal domains, instead of using length as a proxy.
+- Targeting modes for Family 2B, 3 and 4 once their mechanisms are characterised.
 - More encapsulin family profiles.
 - Structure prediction and peptide-shell docking.
 - Machine-learning scoring, if enough validated examples exist.

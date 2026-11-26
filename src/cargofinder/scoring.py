@@ -27,7 +27,15 @@ from typing import Dict, List, Optional, Tuple
 
 from cargofinder.cargo import CargoClassHit
 from cargofinder.cluster import ClusterResult
-from cargofinder.config import ScoringWeights
+from cargofinder.config import (
+    NTERM_EXTENSION_FULL_AA,
+    NTERM_EXTENSION_MIN_AA,
+    TARGETING_MODE_BY_PROFILE,
+    TARGETING_MODE_C_TERMINAL,
+    TARGETING_MODE_DEFAULT,
+    TARGETING_MODE_N_TERMINAL,
+    ScoringWeights,
+)
 from cargofinder.features import PeptideFeatures, compute_peptide_features
 from cargofinder.neighborhood import NeighborCandidate
 
@@ -45,7 +53,7 @@ class ScoredCandidate:
     score_total: float
     score_distance: float
     score_operon: float
-    score_tp_consensus: float
+    score_targeting: float
     score_cargo_class: float
     score_tail_features: float
     score_recurrence: float
@@ -65,6 +73,8 @@ class ScoredCandidate:
     # Prophage context is evidence about the shell locus, not about this
     # candidate being cargo, so it is reported but never added to score_total.
     # Populated by the pipeline after scoring; see cargofinder.prophage.
+    targeting_mode: str = TARGETING_MODE_C_TERMINAL
+    n_terminal_extension_aa: int = 0
     cargo_class: str = ""
     cargo_class_pfam: str = ""
     cargo_class_specific: bool = False
@@ -87,7 +97,9 @@ class ScoredCandidate:
             "score_total": round(self.score_total, 4),
             "score_distance": round(self.score_distance, 4),
             "score_operon": round(self.score_operon, 4),
-            "score_tp_consensus": round(self.score_tp_consensus, 4),
+            "score_targeting": round(self.score_targeting, 4),
+            "targeting_mode": self.targeting_mode,
+            "n_terminal_extension_aa": self.n_terminal_extension_aa,
             "score_cargo_class": round(self.score_cargo_class, 4),
             "cargo_class": self.cargo_class,
             "cargo_class_pfam": self.cargo_class_pfam,
@@ -190,19 +202,52 @@ def score_termini(
     return (n_score, "n") if n_score > c_score else (c_score, "c")
 
 
-def score_tp_consensus(features: PeptideFeatures, termini: str = "c") -> float:
-    """Return the TP consensus similarity for the scored terminus/termini.
+def targeting_mode_for_profile(profile_acc: str) -> str:
+    """Which targeting mechanism applies at a shell locus, from its Pfam family.
 
-    With termini='both' the better terminus counts, which matters for the Family
-    2A cysteine desulfurase cargo that uses an N-terminal targeting sequence
-    (Nichols et al. 2021 eLife 10:e59288).
+    Family 1 recruits cargo with a short C-terminal targeting peptide; Family 2
+    uses a large N-terminal domain instead, and has no short targeting peptide
+    at all (Andreas & Giessen 2021 Nat Commun 12:4748). Scoring a Family 2
+    candidate against the Family 1 C-terminal consensus therefore measures
+    nothing. Unknown families fall back to the C-terminal mode, which is a
+    documented default rather than a claim; every row records the mode used.
     """
+    bare = (profile_acc or "").split(".")[0]
+    return TARGETING_MODE_BY_PROFILE.get(bare, TARGETING_MODE_DEFAULT)
+
+
+def score_c_terminal_tp(features: PeptideFeatures, termini: str = "c") -> float:
+    """TP consensus similarity for the scored terminus/termini."""
     if termini == "c":
         return features.c_tp_consensus_similarity
     return max(
         features.c_tp_consensus_similarity,
         features.n_tp_consensus_similarity,
     )
+
+
+def score_n_terminal_extension(extension_aa: int) -> float:
+    """Score an unannotated N-terminal extension, the Family 2 targeting signal.
+
+    Ramps linearly from 0 at NTERM_EXTENSION_MIN_AA to 1 at
+    NTERM_EXTENSION_FULL_AA. Those bounds come from the truncation series of
+    Nichols et al. (2021) eLife 10:e59288 on the S. elongatus CyD cargo: the
+    full 225-residue N-terminal domain loaded best, the first 100 residues still
+    worked but less well, a 29-residue fragment carrying a conserved motif did
+    not work, and deleting the domain abolished loading. See config for the
+    quoted sentences. The linear shape between the anchors is a judgment call.
+
+    Returns 0.0 when the extension cannot be measured, which is the same value
+    as "no extension". That is a known ambiguity: it requires a recognised
+    domain to measure the extension against, so novel cargo of an unknown class
+    gets nothing here.
+    """
+    if extension_aa <= NTERM_EXTENSION_MIN_AA:
+        return 0.0
+    span = NTERM_EXTENSION_FULL_AA - NTERM_EXTENSION_MIN_AA
+    if span <= 0:
+        return 1.0
+    return min(1.0, (extension_aa - NTERM_EXTENSION_MIN_AA) / span)
 
 
 def compute_recurrence_score(shell_count: int) -> float:
@@ -281,15 +326,21 @@ def score_candidates(
         s_tail, best_terminus = score_termini(
             feats, has_motifs=has_motifs, termini=termini
         )
-        s_tp = score_tp_consensus(feats, termini=termini)
         cargo_hit = (cargo_classes or {}).get(cid)
         s_cargo = cargo_hit.score if cargo_hit is not None else 0.0
+
+        mode = targeting_mode_for_profile(cand.shell_hit.profile_acc)
+        nterm_ext = cargo_hit.n_terminal_extension_aa if cargo_hit else 0
+        if mode == TARGETING_MODE_N_TERMINAL:
+            s_target = score_n_terminal_extension(nterm_ext)
+        else:
+            s_target = score_c_terminal_tp(feats, termini=termini)
         s_rec = compute_recurrence_score(shell_count)
 
         total = (
             weights.w_distance * s_dist
             + weights.w_operon * s_op
-            + weights.w_tp_consensus * s_tp
+            + weights.w_targeting * s_target
             + weights.w_cargo_class * s_cargo
             + weights.w_tail_features * s_tail
             + weights.w_recurrence * s_rec
@@ -304,7 +355,9 @@ def score_candidates(
                 score_total=total,
                 score_distance=s_dist,
                 score_operon=s_op,
-                score_tp_consensus=s_tp,
+                score_targeting=s_target,
+                targeting_mode=mode,
+                n_terminal_extension_aa=nterm_ext,
                 score_cargo_class=s_cargo,
                 cargo_class=cargo_hit.cargo_class if cargo_hit else "",
                 cargo_class_pfam=cargo_hit.pfam_id if cargo_hit else "",

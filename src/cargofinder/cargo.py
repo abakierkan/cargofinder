@@ -35,7 +35,7 @@ not dominate the score.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence
 
@@ -70,6 +70,17 @@ class CargoClassHit:
     profile_name: str
     evalue: float
     encapsulin_specific: bool
+    #: 1-based start of the earliest recognised domain on the protein. The
+    #: residues before it are the unannotated N-terminal extension, which is
+    #: what mediates encapsulation in Family 2 systems.
+    first_domain_start: int = 1
+    #: Full length of the candidate protein, for computing the extension.
+    protein_length: int = 0
+
+    @property
+    def n_terminal_extension_aa(self) -> int:
+        """Residues N-terminal to the earliest recognised domain."""
+        return max(0, self.first_domain_start - 1)
 
     @property
     def score(self) -> float:
@@ -158,6 +169,13 @@ def classify_cargo_candidates(
         return {}
 
     best: Dict[str, CargoClassHit] = {}
+    # The N-terminal extension must be measured against the EARLIEST domain
+    # found by ANY cargo class profile, not the best-scoring one. A DyP
+    # peroxidase matches Dyp_perox_C around residue 140, but Dyp_perox_N starts
+    # near residue 10, so using the best hit alone would report a spurious
+    # ~140-residue "extension" for an ordinary two-domain protein.
+    earliest: Dict[str, int] = {}
+    lengths = {g.gene_id: len(g.protein_seq) for g in genes}
 
     for top_hits in pyhmmer.hmmer.hmmsearch(hmms, digital_seqs):
         profile_name = _as_text(getattr(top_hits.query, "name", ""))
@@ -176,6 +194,9 @@ def classify_cargo_candidates(
             if hit.evalue > evalue_cutoff:
                 continue
             gene_id = _as_text(hit.name)
+            starts = [
+                d.alignment.target_from for d in hit.domains if d.alignment is not None
+            ]
             cand = CargoClassHit(
                 gene_id=gene_id,
                 cargo_class=definition.cargo_class,
@@ -183,10 +204,22 @@ def classify_cargo_candidates(
                 profile_name=profile_name,
                 evalue=hit.evalue,
                 encapsulin_specific=definition.encapsulin_specific,
+                first_domain_start=min(starts) if starts else 1,
+                protein_length=lengths.get(gene_id, 0),
             )
             prev = best.get(gene_id)
             if prev is None or _outranks(cand, prev):
                 best[gene_id] = cand
+            earliest[gene_id] = min(
+                earliest.get(gene_id, cand.first_domain_start),
+                cand.first_domain_start,
+            )
+
+    # Fold the across-profile earliest domain start back into each kept hit.
+    for gene_id, hit in list(best.items()):
+        first = earliest.get(gene_id, hit.first_domain_start)
+        if first != hit.first_domain_start:
+            best[gene_id] = replace(hit, first_domain_start=first)
 
     if best:
         counts: Dict[str, int] = {}

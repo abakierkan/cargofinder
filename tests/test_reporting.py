@@ -49,7 +49,7 @@ def _build_mock_scored_candidate(
         score_total=score,
         score_distance=1.0,
         score_operon=1.0,
-        score_tp_consensus=0.4,
+        score_targeting=0.4,
         score_cargo_class=0.6,
         score_tail_features=0.5,
         score_recurrence=0.2,

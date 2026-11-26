@@ -22,7 +22,7 @@ def test_default_scoring_weights_valid():
     total = (
         weights.w_distance
         + weights.w_operon
-        + weights.w_tp_consensus
+        + weights.w_targeting
         + weights.w_cargo_class
         + weights.w_tail_features
         + weights.w_recurrence
@@ -34,7 +34,7 @@ def test_invalid_negative_scoring_weights():
     weights = ScoringWeights(
         w_distance=-0.1,
         w_operon=0.3,
-        w_tp_consensus=0.2,
+        w_targeting=0.2,
         w_cargo_class=0.1,
         w_tail_features=0.3,
         w_recurrence=0.2,
@@ -47,7 +47,7 @@ def test_invalid_sum_scoring_weights():
     weights = ScoringWeights(
         w_distance=0.5,
         w_operon=0.5,
-        w_tp_consensus=0.5,
+        w_targeting=0.5,
         w_cargo_class=0.5,
         w_tail_features=0.5,
         w_recurrence=0.5,
@@ -93,8 +93,22 @@ def test_load_weights_rejects_unknown_key_and_bad_json():
 def test_select_profiles():
     assert select_profiles() == DEFAULT_SHELL_PROFILES
     assert select_profiles(["PF19307"])[-1].pfam_id == "PF19307"
-    with pytest.raises(ValueError, match="Unknown extra profile"):
-        select_profiles(["PF00000"])
+    # A curated accession keeps its curated description.
+    assert "SrpI" in select_profiles(["PF19307"])[-1].description
+
+
+def test_select_profiles_accepts_any_valid_pfam_accession():
+    """Users may scan families cargofinder does not know about."""
+    chosen = select_profiles(["PF12345"])
+    assert chosen[-1].pfam_id == "PF12345"
+    # ...but the description must not imply cargofinder vouches for it.
+    assert "makes no claim" in chosen[-1].description
+
+
+@pytest.mark.parametrize("bad", ["nonsense", "PF123", "PF123456", "pf19307", ""])
+def test_select_profiles_rejects_malformed_accessions(bad):
+    with pytest.raises(ValueError, match="not a Pfam accession"):
+        select_profiles([bad])
 
 
 @pytest.mark.parametrize(
@@ -131,7 +145,7 @@ def test_without_cargo_class_rejects_all_zero_remainder():
     w = ScoringWeights(
         w_distance=0.0,
         w_operon=0.0,
-        w_tp_consensus=0.0,
+        w_targeting=0.0,
         w_cargo_class=1.0,
         w_tail_features=0.0,
         w_recurrence=0.0,

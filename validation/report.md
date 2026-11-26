@@ -16,7 +16,7 @@ the run; do not edit them by hand.
 
 ## Cargo recovery
 
-| top k | cargofinder, all 11 cargos | cargofinder, 6 adjacent cargos | adjacency only, adjacent cargos | tail only (composition), adjacent cargos | TP consensus only, adjacent cargos | cargo class only, adjacent cargos |
+| top k | cargofinder, all 11 cargos | cargofinder, 6 adjacent cargos | adjacency only, adjacent cargos | tail only (composition), adjacent cargos | targeting signal only, adjacent cargos | cargo class only, adjacent cargos |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 6/11 | 6/6 | 5/6 | 3/6 | 6/6 | 6/6 |
 | 3 | 6/11 | 6/6 | 6/6 | 5/6 | 6/6 | 6/6 |
@@ -55,14 +55,22 @@ Reported separately:
 
 ## Family 2A sensitivity run
 
-*S. elongatus* plasmid scanned with `PF19307`, under C-terminal scoring and
-`--termini both`. This cargo uses an N-terminal targeting sequence (Nichols et al.
-2021).
+*S. elongatus* plasmid scanned with `PF19307`. The default PF04454 profile does
+not detect this Family 2A shell at all, which is why the main table above counts
+this system as missed; with the right profile the shell is found.
+
+This cargo is targeted by a disordered N-terminal domain, not a C-terminal
+peptide (Nichols et al. 2021). Because the shell matches PF19307, cargofinder
+switches the targeting component to N-terminal extension length automatically,
+so the `--termini` setting barely matters here: it only affects the C-terminal
+mode. The cargo carries a 242-residue extension before its Aminotran_5 domain,
+against the 225-residue domain characterised in that paper, so it scores the
+maximum.
 
 | termini | shell_detected | cargo_rank | cargo_score | top_score | top_gene_distance |
 | --- | --- | --- | --- | --- | --- |
-| c | True | 1 of 10 | 0.582 | 0.582 | -1 |
-| both | True | 1 of 10 | 0.584 | 0.584 | -1 |
+| c | True | 1 of 10 | 0.696 | 0.696 | -1 |
+| both | True | 1 of 10 | 0.697 | 0.697 | -1 |
 
 ## Cargo class recognition
 

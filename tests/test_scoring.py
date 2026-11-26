@@ -110,7 +110,7 @@ def test_toy_case_known_ranking():
     weights = ScoringWeights(
         w_distance=0.25,
         w_operon=0.15,
-        w_tp_consensus=0.15,
+        w_targeting=0.15,
         w_cargo_class=0.30,
         w_tail_features=0.05,
         w_recurrence=0.10,
@@ -134,7 +134,7 @@ def test_toy_case_known_ranking():
     d0 = scored[0].to_dict()
     assert "score_distance" in d0
     assert "score_operon" in d0
-    assert "score_tp_consensus" in d0
+    assert "score_targeting" in d0
     assert "score_cargo_class" in d0
     assert "cargo_class" in d0
     assert "score_tail_features" in d0
@@ -145,7 +145,7 @@ def test_toy_case_known_ranking():
             [
                 weights.w_distance * scored[0].score_distance,
                 weights.w_operon * scored[0].score_operon,
-                weights.w_tp_consensus * scored[0].score_tp_consensus,
+                weights.w_targeting * scored[0].score_targeting,
                 weights.w_cargo_class * scored[0].score_cargo_class,
                 weights.w_tail_features * scored[0].score_tail_features,
                 weights.w_recurrence * scored[0].score_recurrence,
@@ -225,3 +225,48 @@ def test_rank_in_shell_is_per_shell():
     assert (scored["a1"].rank, scored["a1"].rank_in_shell) == (1, 1)
     assert (scored["b1"].rank, scored["b1"].rank_in_shell) == (2, 1)
     assert (scored["a2"].rank, scored["a2"].rank_in_shell) == (3, 2)
+
+
+def test_targeting_mode_is_chosen_by_shell_family():
+    """Family 1 uses a C-terminal TP; Family 2 uses an N-terminal domain."""
+    from cargofinder.config import (
+        TARGETING_MODE_C_TERMINAL,
+        TARGETING_MODE_N_TERMINAL,
+    )
+    from cargofinder.scoring import targeting_mode_for_profile
+
+    assert targeting_mode_for_profile("PF04454") == TARGETING_MODE_C_TERMINAL
+    # Accessions in HMM headers carry a version suffix.
+    assert targeting_mode_for_profile("PF04454.20") == TARGETING_MODE_C_TERMINAL
+    assert targeting_mode_for_profile("PF19307.6") == TARGETING_MODE_N_TERMINAL
+    # Unknown or absent families fall back to the documented default.
+    assert targeting_mode_for_profile("PF08967") == TARGETING_MODE_C_TERMINAL
+    assert targeting_mode_for_profile("") == TARGETING_MODE_C_TERMINAL
+
+
+def test_n_terminal_extension_score_matches_the_published_anchors():
+    """Anchored to the Nichols et al. (2021) CyD truncation series."""
+    from cargofinder.scoring import score_n_terminal_extension
+
+    # A mutant lacking the N-terminal domain was not measurably encapsulated.
+    assert score_n_terminal_extension(0) == 0.0
+    # CyD 155-183 (29 residues) was not sufficient to sequester cargo.
+    assert score_n_terminal_extension(29) == 0.0
+    assert score_n_terminal_extension(30) == 0.0
+    # The full 225-residue NTD loaded best.
+    assert score_n_terminal_extension(225) == 1.0
+    # Longer than the anchor stays clamped at 1.0.
+    assert score_n_terminal_extension(400) == 1.0
+    # The first 100 residues worked, but less efficiently: strictly between.
+    mid = score_n_terminal_extension(100)
+    assert 0.0 < mid < 1.0
+    # Monotonic across the ramp.
+    values = [score_n_terminal_extension(n) for n in range(0, 260, 10)]
+    assert values == sorted(values)
+
+
+def test_n_terminal_extension_is_bounded():
+    from cargofinder.scoring import score_n_terminal_extension
+
+    for n in [-5, 0, 1, 50, 224, 225, 10_000]:
+        assert 0.0 <= score_n_terminal_extension(n) <= 1.0

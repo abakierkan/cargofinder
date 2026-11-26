@@ -21,11 +21,18 @@
   *Mycolicibacterium smegmatis* MC2 155 MSMEG_5830/MSMEG_5829 (MsDyP, Tang
   et al. 2021, doi:10.1073/pnas.2025658118). Both locus-tag pairs are stated in
   those papers and independently confirmed by the current RefSeq annotation.
-- `score_tp_consensus`: BLOSUM62 similarity of each terminus to the published
-  Family 1 targeting-peptide consensus `SDGSLGIGSLKRS` (Giessen & Silver 2017),
-  reproducing the comparison Andreas & Giessen (2021) made with `blastp`. New
-  `substitution.py` holds BLOSUM62 and the ungapped window scan; no new
-  dependency.
+- `score_targeting`, a family-aware targeting signal replacing v0.1's
+  composition-only tail score. At a Family 1 shell (PF04454) it is BLOSUM62
+  similarity of the terminus to the published targeting-peptide consensus
+  `SDGSLGIGSLKRS` (Giessen & Silver 2017), reproducing the comparison Andreas &
+  Giessen (2021) made with `blastp`; new `substitution.py` holds BLOSUM62 and
+  the ungapped window scan, with no new dependency. At a Family 2A shell
+  (PF19307) there is no short targeting peptide at all, so it is instead the
+  length of the unannotated N-terminal domain, bounded by the CyD truncation
+  series in Nichols et al. (2021), doi:10.7554/eLife.59288: 0 at 30 residues,
+  1.0 at 225. Unknown families fall back to C-terminal mode, and every row
+  records which was used in `targeting_mode`. This moved the S. elongatus
+  Family 2A cargo from rank 3 to rank 1.
 - `data/published_tp_motifs.json`: targeting-peptide anchor motifs from
   Altenburg et al. (2021), each quoting its source sentence. Opt-in via
   `--motifs`.
@@ -34,11 +41,20 @@
   is flagged in `shells.tsv` and on every candidate row. New
   `--drop-prophage-loci` excludes flagged loci. `fetch-profiles` now also
   downloads the marker profiles into `profiles/phage_markers/`.
-- Validation gained a TP-consensus-only baseline and a prophage screening
+- Validation gained a targeting-signal-only baseline and a prophage screening
   control (`validation/prophage_control.tsv`).
 
+- `fetch-profiles --extra` now accepts any syntactically valid Pfam accession,
+  not only the three curated ones, with the description stating that cargofinder
+  makes no claim about it. Custom non-Pfam HMMs are scanned by dropping them in
+  the `--profiles` directory, which is the only way to reach Family 2B and
+  Family 3.
+- Added the Family 2A CyD N-terminal motif AASPYYFLDG to published_tp_motifs.json,
+  with the paper's own finding that the motif alone is not sufficient for
+  encapsulation.
+
 ### Changed
-- Default weights, now: `w_distance` 0.25, `w_operon` 0.15, `w_tp_consensus`
+- Default weights, now: `w_distance` 0.25, `w_operon` 0.15, `w_targeting`
   0.15, `w_cargo_class` 0.30, `w_tail_features` 0.05, `w_recurrence` 0.10
   (v0.1 was 0.35/0.25/-/-/0.25/0.15). The invented composition heuristic was
   down-weighted hard in favour of the two literature-grounded signals, after the
