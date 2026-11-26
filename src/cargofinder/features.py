@@ -238,6 +238,9 @@ def load_motif_patterns(motif_file: Path | str) -> Dict[str, str]:
     {
       "motif_name": "REGEX_PATTERN"
     }
+
+    Keys beginning with an underscore are treated as documentation and skipped,
+    so a motif file can carry notes without creating an output column.
     """
     p = Path(motif_file)
     if not p.is_file():
@@ -246,6 +249,10 @@ def load_motif_patterns(motif_file: Path | str) -> Dict[str, str]:
     data = json.loads(p.read_text(encoding="utf-8"))
     patterns: Dict[str, str] = {}
     for k, v in data.items():
+        # Keys starting with an underscore are documentation, not motifs, so a
+        # motif file can carry provenance notes without adding output columns.
+        if k.startswith("_"):
+            continue
         if isinstance(v, str):
             patterns[k] = v
         elif isinstance(v, dict) and "regex" in v:

@@ -1,10 +1,12 @@
 """Unit tests for terminal peptide feature computation on hand-computed examples."""
 
+import json
 import math
 from pathlib import Path
 
 import pytest
 
+import cargofinder
 from cargofinder.features import (
     compute_gly_ser_fraction,
     compute_hydrophobic_fraction,
@@ -114,3 +116,41 @@ def test_compute_peptide_features_tm0786():
 def test_extract_terminal_peptides_rejects_zero_tail():
     with pytest.raises(ValueError, match="at least 1"):
         extract_terminal_peptides("MVKTY", tail_length=0)
+
+
+def test_underscore_keys_are_documentation_not_motifs(tmp_path):
+    """A motif file may carry provenance notes without adding output columns."""
+    f = tmp_path / "motifs.json"
+    f.write_text(
+        json.dumps(
+            {
+                "_README": {"regex": "(?!)", "description": "notes"},
+                "real_motif": {"regex": "GSL"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    patterns = load_motif_patterns(f)
+    assert set(patterns) == {"real_motif"}
+
+
+def test_shipped_published_motifs_load_and_match_expected_peptides():
+    """The shipped motif file must stay loadable and behave as its citations say."""
+    shipped = Path(cargofinder.__file__).parent / "data" / "published_tp_motifs.json"
+    patterns = load_motif_patterns(shipped)
+    assert "_README" not in patterns
+    assert patterns, "shipped motif file defines no motifs"
+
+    # Native T1 TP NTGGDLGIRK (Altenburg et al. 2021) carries the LGI hinge.
+    t1 = match_motifs("NTGGDLGIRK", patterns)
+    assert t1["f1_hydrophobic_gly_hinge"] is True
+
+    # Native T3 TP PLTVGSLRRGG carries the V-x4-R anchor and the GSL element.
+    t3 = match_motifs("PLTVGSLRRGG", patterns)
+    assert t3["t3_vxxxxr_anchor"] is True
+    assert t3["tp_gsl_flexibility"] is True
+
+    # The GGS control peptide binds nothing; it must not hit the anchor motifs.
+    ggs = match_motifs("GGSGGSGGSGG", patterns)
+    assert ggs["f1_hydrophobic_gly_hinge"] is False
+    assert ggs["t3_vxxxxr_anchor"] is False
