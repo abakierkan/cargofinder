@@ -108,7 +108,11 @@ def test_toy_case_known_ranking():
 
     motifs = load_motif_patterns(MOTIF_FILE)
     weights = ScoringWeights(
-        w_distance=0.35, w_operon=0.25, w_tail_features=0.25, w_recurrence=0.15
+        w_distance=0.30,
+        w_operon=0.20,
+        w_tp_consensus=0.20,
+        w_tail_features=0.15,
+        w_recurrence=0.15,
     )
     scored = score_candidates(
         [cand_c, cand_a, cand_b], clu, weights=weights, motifs=motifs
@@ -129,6 +133,7 @@ def test_toy_case_known_ranking():
     d0 = scored[0].to_dict()
     assert "score_distance" in d0
     assert "score_operon" in d0
+    assert "score_tp_consensus" in d0
     assert "score_tail_features" in d0
     assert "score_recurrence" in d0
     assert math.isclose(
@@ -137,6 +142,7 @@ def test_toy_case_known_ranking():
             [
                 weights.w_distance * scored[0].score_distance,
                 weights.w_operon * scored[0].score_operon,
+                weights.w_tp_consensus * scored[0].score_tp_consensus,
                 weights.w_tail_features * scored[0].score_tail_features,
                 weights.w_recurrence * scored[0].score_recurrence,
             ]

@@ -21,6 +21,7 @@ def test_default_scoring_weights_valid():
     total = (
         weights.w_distance
         + weights.w_operon
+        + weights.w_tp_consensus
         + weights.w_tail_features
         + weights.w_recurrence
     )
@@ -29,7 +30,11 @@ def test_default_scoring_weights_valid():
 
 def test_invalid_negative_scoring_weights():
     weights = ScoringWeights(
-        w_distance=-0.1, w_operon=0.5, w_tail_features=0.3, w_recurrence=0.3
+        w_distance=-0.1,
+        w_operon=0.4,
+        w_tp_consensus=0.2,
+        w_tail_features=0.3,
+        w_recurrence=0.2,
     )
     with pytest.raises(ValueError, match="non-negative"):
         weights.validate()
@@ -37,7 +42,11 @@ def test_invalid_negative_scoring_weights():
 
 def test_invalid_sum_scoring_weights():
     weights = ScoringWeights(
-        w_distance=0.5, w_operon=0.5, w_tail_features=0.5, w_recurrence=0.5
+        w_distance=0.5,
+        w_operon=0.5,
+        w_tp_consensus=0.5,
+        w_tail_features=0.5,
+        w_recurrence=0.5,
     )
     with pytest.raises(ValueError, match="must sum to 1.0"):
         weights.validate()
@@ -65,7 +74,7 @@ def test_run_config_defaults():
 
 
 def test_load_weights_inline_and_file(tmp_path):
-    assert load_weights('{"w_distance": 0.35}') == ScoringWeights()
+    assert load_weights('{"w_distance": 0.30}') == ScoringWeights()
     shipped = Path(cargofinder.__file__).parent / "data" / "default_weights.json"
     assert load_weights(str(shipped)) == ScoringWeights()
 

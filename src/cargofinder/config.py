@@ -90,6 +90,7 @@ class ScoringWeights:
 
     Score = w_distance * S_distance
           + w_operon * S_operon
+          + w_tp_consensus * S_tp_consensus
           + w_tail_features * S_tail_features
           + w_recurrence * S_recurrence
 
@@ -98,15 +99,22 @@ class ScoringWeights:
       vicinity of the shell (often +/- 1 to 3 genes).
     - Operon likelihood: Genes on the same strand with short intergenic distance
       (e.g., < 150 bp) are frequently co-transcribed.
-    - Targeting peptide: Weakly conserved terminal extension (typically C-terminal,
-      hydrophobic/amphipathic patch, Gly/Ser flexibility).
+    - TP consensus similarity: BLOSUM62 similarity of the terminal slice to the
+      published Family 1 targeting-peptide consensus SDGSLGIGSLKRS (Giessen &
+      Silver 2017; used as a blastp query by Andreas & Giessen 2021). This is the
+      one tail signal with a literature basis, so it outweighs raw composition.
+    - Targeting peptide composition: Weakly conserved terminal extension
+      (hydrophobic/amphipathic patch, Gly/Ser flexibility). This component is a
+      cargofinder heuristic with no published basis, and the v0.1 benchmark showed
+      it added almost nothing over adjacency; it is deliberately down-weighted.
     - Recurrence: The same gene family appearing next to encapsulins across multiple
       independent loci/genomes provides strong evolutionary support.
     """
 
-    w_distance: float = 0.35
-    w_operon: float = 0.25
-    w_tail_features: float = 0.25
+    w_distance: float = 0.30
+    w_operon: float = 0.20
+    w_tp_consensus: float = 0.20
+    w_tail_features: float = 0.15
     w_recurrence: float = 0.15
 
     def validate(self) -> None:
@@ -114,6 +122,7 @@ class ScoringWeights:
         weights = [
             self.w_distance,
             self.w_operon,
+            self.w_tp_consensus,
             self.w_tail_features,
             self.w_recurrence,
         ]

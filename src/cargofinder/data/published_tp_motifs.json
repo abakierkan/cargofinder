@@ -1,0 +1,38 @@
+{
+  "_README": {
+    "regex": "(?!)",
+    "citation": "This entry is documentation, not a motif. Its regex never matches.",
+    "description": "Targeting-peptide (TP) motifs taken from published experimental and modelling work on Family 1 encapsulins. Every entry below quotes the sentence it came from so you can check it against the paper. These are ANCHOR motifs: short, degenerate patterns that match by chance at appreciable rates in any protein terminus. They are hints that rank candidates, never evidence of encapsulation. Pass this file with --motifs to use it; it is NOT applied by default. Motifs are matched against the terminal slice only, not the whole protein.",
+    "verified": true
+  },
+  "f1_tp_consensus_core": {
+    "regex": "G[ST]LG[IV]G[ST]L",
+    "citation": "Giessen TW & Silver PA (2017) Nat Microbiol 2:17029, doi:10.1038/nmicrobiol.2017.29, which defines the Family 1 targeting-peptide consensus SDGSLGIGSLKRS. Andreas MP & Giessen TW (2021) Nat Commun 12:4748, doi:10.1038/s41467-021-25071-y used that exact 13-mer as a blastp query to identify Family 1 cargo proteins encoded within 5000 bp of a shell gene.",
+    "description": "The GSLGIGSL core of the published Family 1 TP consensus, relaxed at the two Ser positions (S or T) and at the Ile (I or V). A full-length match is rare; see the cargofinder tp_consensus_similarity feature for a graded alternative.",
+    "verified": true
+  },
+  "f1_hydrophobic_gly_hinge": {
+    "regex": "[LIVMF]G[LIVMF]",
+    "citation": "Altenburg WJ, Rollins N, Silver PA, Giessen TW (2021) Sci Rep 11:4951, doi:10.1038/s41598-021-84329-z: 'In both cases the interaction is governed by two hydrophobic residues separated by a glycine (LGI). The glycine residue serves as a flexible hinge allowing the two hydrophobic residues to adopt optimal conformations for interacting with the hydrophobic pocket.'",
+    "description": "The two-hydrophobic-plus-glycine-hinge anchor of the T1 (Thermotoga maritima) shell pocket. Only three residues long, so it matches often by chance. Treat a hit as weak evidence.",
+    "verified": true
+  },
+  "t3_vxxxxr_anchor": {
+    "regex": "[VLI].{4}R",
+    "citation": "Altenburg WJ et al. (2021) Sci Rep 11:4951, doi:10.1038/s41598-021-84329-z: 'binding of the native TP is primarily mediated by the hydrophobic interaction of a valine residue and the ionic interaction of an arginine placed five residues apart ... The interacting motif in the native T3 TP is VxxxxR' and, generalised in the same paper, 'The spacing of hydrophobic residues does not allow for a V/L/IxxxxR motif'.",
+    "description": "The T3 (Myxococcus xanthus) anchor: a hydrophobic residue and an arginine separated by four residues. Derived from Rosetta FlexPepDock modelling calibrated against the T1 co-crystal structure, with mutational support (R9A reduced loading); it is not itself a solved T3 co-crystal contact.",
+    "verified": true
+  },
+  "tp_gsl_flexibility": {
+    "regex": "GSL",
+    "citation": "Altenburg WJ et al. (2021) Sci Rep 11:4951, doi:10.1038/s41598-021-84329-z: 'The GSL motif is widely conserved in TPs highlighting its importance for optimally positioning the interacting residues.' The same paper's point-mutation scan found that mutating positions 5-7 (GSL) gave 'primarily worse binding scores', and the S6A mutant measurably reduced cargo loading.",
+    "description": "A flexibility and positioning element rather than a binding anchor. Three residues, and Gly/Ser-rich stretches are common in linkers generally, so this is the weakest motif here and will match many non-cargo termini.",
+    "verified": true
+  },
+  "tp_c_terminal_basic": {
+    "regex": "[KR].{0,3}$",
+    "citation": "Altenburg WJ et al. (2021) Sci Rep 11:4951, doi:10.1038/s41598-021-84329-z: 'the lysine residues at or close to the C-terminus, present in both the native and consensus T1 TPs, interact with a negative surface patch of the T1 encapsulin.' The point-mutation scan found most substitutions at the last three residues impaired binding, and R9A reduced loading experimentally.",
+    "description": "A basic residue within the last four positions, pairing with the shell's negative surface patch. Anchored to the end of the slice, so only meaningful when matched against a C-terminal slice.",
+    "verified": true
+  }
+}

@@ -5,8 +5,14 @@ Biological and design principles:
    breakdown into interpretable biological sub-scores.
 2. Synteny/Adjacency: Distance decay reflects high operon linkage in prokaryotes.
 3. Operon likelihood: Co-directional genes within short intergenic spacing (<=150 bp).
-4. Terminal peptide: Hydrophobic terminus, flexible Gly/Ser linker, optional motifs.
-5. Cross-system recurrence: Homologous candidate families found next to independent
+4. TP consensus similarity: BLOSUM62 similarity of the terminal slice to the
+   published Family 1 targeting-peptide consensus SDGSLGIGSLKRS (Giessen & Silver
+   2017 Nat Microbiol 2:17029; used as a blastp query to assign Family 1 cargo by
+   Andreas & Giessen 2021 Nat Commun 12:4748).
+5. Terminal peptide composition: Hydrophobic terminus, flexible Gly/Ser linker,
+   optional motifs. This component is a cargofinder heuristic with no published
+   basis and is down-weighted accordingly.
+6. Cross-system recurrence: Homologous candidate families found next to independent
    shells across loci/genomes receive an evolutionary conservation bonus.
 """
 
@@ -35,6 +41,7 @@ class ScoredCandidate:
     score_total: float
     score_distance: float
     score_operon: float
+    score_tp_consensus: float
     score_tail_features: float
     score_recurrence: float
     gene_distance: int
@@ -66,6 +73,7 @@ class ScoredCandidate:
             "score_total": round(self.score_total, 4),
             "score_distance": round(self.score_distance, 4),
             "score_operon": round(self.score_operon, 4),
+            "score_tp_consensus": round(self.score_tp_consensus, 4),
             "score_tail_features": round(self.score_tail_features, 4),
             "score_recurrence": round(self.score_recurrence, 4),
             "best_terminus": self.best_terminus,
@@ -161,6 +169,21 @@ def score_termini(
     return (n_score, "n") if n_score > c_score else (c_score, "c")
 
 
+def score_tp_consensus(features: PeptideFeatures, termini: str = "c") -> float:
+    """Return the TP consensus similarity for the scored terminus/termini.
+
+    With termini='both' the better terminus counts, which matters for the Family
+    2A cysteine desulfurase cargo that uses an N-terminal targeting sequence
+    (Nichols et al. 2021 eLife 10:e59288).
+    """
+    if termini == "c":
+        return features.c_tp_consensus_similarity
+    return max(
+        features.c_tp_consensus_similarity,
+        features.n_tp_consensus_similarity,
+    )
+
+
 def compute_recurrence_score(shell_count: int) -> float:
     """Cluster recurrence score in [0.0, 1.0].
 
@@ -231,11 +254,13 @@ def score_candidates(
         s_tail, best_terminus = score_termini(
             feats, has_motifs=has_motifs, termini=termini
         )
+        s_tp = score_tp_consensus(feats, termini=termini)
         s_rec = compute_recurrence_score(shell_count)
 
         total = (
             weights.w_distance * s_dist
             + weights.w_operon * s_op
+            + weights.w_tp_consensus * s_tp
             + weights.w_tail_features * s_tail
             + weights.w_recurrence * s_rec
         )
@@ -249,6 +274,7 @@ def score_candidates(
                 score_total=total,
                 score_distance=s_dist,
                 score_operon=s_op,
+                score_tp_consensus=s_tp,
                 score_tail_features=s_tail,
                 score_recurrence=s_rec,
                 gene_distance=cand.gene_distance,

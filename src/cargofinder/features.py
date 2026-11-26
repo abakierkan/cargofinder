@@ -10,7 +10,10 @@ Key physicochemical signatures:
    (quantified using the Kyte-Doolittle scale, Kyte & Doolittle 1982 JMB).
 2. Gly/Ser-rich flexible linker: Small flexible residues connecting the
    globular cargo core to the targeting peptide.
-3. User-configurable sequence motif regexes.
+3. Similarity to the published Family 1 targeting-peptide consensus
+   SDGSLGIGSLKRS (Giessen & Silver 2017 Nat Microbiol 2:17029; used as a blastp
+   query by Andreas & Giessen 2021 Nat Commun 12:4748). See substitution.py.
+4. User-configurable sequence motif regexes.
 
 Sequence complexity (Shannon entropy, low-complexity score) is reported for
 inspection but is not used in the score: we found no evidence for either direction.
@@ -24,6 +27,11 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Optional, Tuple
+
+from cargofinder.substitution import (
+    FAMILY1_TP_CONSENSUS,
+    best_ungapped_similarity,
+)
 
 # Kyte & Doolittle (1982) J. Mol. Biol. 157:105-132
 KYTE_DOOLITTLE: Dict[str, float] = {
@@ -67,9 +75,11 @@ class PeptideFeatures:
     c_shannon_entropy: float
     c_low_complexity_score: float
     c_net_charge: float
+    c_tp_consensus_similarity: float
     n_kd_hydrophobicity: float
     n_gly_ser_fraction: float
     n_hydrophobic_fraction: float
+    n_tp_consensus_similarity: float
     motif_matches: Dict[str, bool] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, float | str | int | bool]:
@@ -84,9 +94,11 @@ class PeptideFeatures:
             "c_shannon_entropy": round(self.c_shannon_entropy, 4),
             "c_low_complexity_score": round(self.c_low_complexity_score, 4),
             "c_net_charge": round(self.c_net_charge, 2),
+            "c_tp_consensus_similarity": round(self.c_tp_consensus_similarity, 4),
             "n_kd_hydrophobicity": round(self.n_kd_hydrophobicity, 4),
             "n_gly_ser_fraction": round(self.n_gly_ser_fraction, 4),
             "n_hydrophobic_fraction": round(self.n_hydrophobic_fraction, 4),
+            "n_tp_consensus_similarity": round(self.n_tp_consensus_similarity, 4),
         }
         for name, matched in self.motif_matches.items():
             d[f"motif_{name}"] = matched
@@ -185,6 +197,32 @@ def compute_net_charge(peptide: str) -> float:
     return float(pos - neg)
 
 
+def compute_tp_consensus_similarity(
+    peptide: str,
+    reference: str = FAMILY1_TP_CONSENSUS,
+) -> float:
+    """Normalised BLOSUM62 similarity of a terminal slice to a reference TP.
+
+    Defaults to the published Family 1 targeting-peptide consensus
+    SDGSLGIGSLKRS (Giessen & Silver 2017; used as a blastp query by
+    Andreas & Giessen 2021). See `substitution.best_ungapped_similarity`.
+
+    Caveat worth knowing before you read this number: the consensus is itself
+    Gly/Ser-rich, so generic Gly/Ser linkers score around 0.3 as background. A
+    plain GGSGGSGGSGG control peptide, which Altenburg et al. (2021) showed does
+    not bind the shell pocket at all, scores about as high as some native TPs.
+    This feature does not separate a real anchor from a flexible linker on its
+    own; the anchor motifs in data/published_tp_motifs.json are what address
+    that, and neither is proof of encapsulation.
+
+    Returns
+    -------
+    float
+        Similarity in [0.0, 1.0]; 1.0 is an exact full-length match.
+    """
+    return best_ungapped_similarity(peptide, reference=reference)
+
+
 def load_motif_patterns(motif_file: Path | str) -> Dict[str, str]:
     """Load regex motif patterns from a JSON file.
 
@@ -264,10 +302,12 @@ def compute_peptide_features(
     c_entropy = compute_shannon_entropy(c_tail)
     c_low_comp = compute_low_complexity_score(c_tail)
     c_charge = compute_net_charge(c_tail)
+    c_tp_sim = compute_tp_consensus_similarity(c_tail)
 
     n_kd = compute_hydrophobicity_kd(n_tail)
     n_gly_ser = compute_gly_ser_fraction(n_tail)
     n_hydro = compute_hydrophobic_fraction(n_tail)
+    n_tp_sim = compute_tp_consensus_similarity(n_tail)
 
     motif_matches = match_motifs(c_tail, motifs) if motifs else {}
 
@@ -281,8 +321,10 @@ def compute_peptide_features(
         c_shannon_entropy=c_entropy,
         c_low_complexity_score=c_low_comp,
         c_net_charge=c_charge,
+        c_tp_consensus_similarity=c_tp_sim,
         n_kd_hydrophobicity=n_kd,
         n_gly_ser_fraction=n_gly_ser,
         n_hydrophobic_fraction=n_hydro,
+        n_tp_consensus_similarity=n_tp_sim,
         motif_matches=motif_matches,
     )
