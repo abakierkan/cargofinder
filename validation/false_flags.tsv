@@ -17,3 +17,9 @@ Rhodococcus jostii RHA1	3	RHA1_ro02405	protein kinase/ transcriptional regulator
 Rhodococcus erythropolis PR4	1	RER_59910	conserved hypothetical protein	0.78	1	True	True	TAPISDGSLGIGSLKRSAQQ
 Rhodococcus erythropolis PR4	2	RER_59920	hypothetical protein	0.395	2	True	False	DGKIFEIPAGFDAGAQAATP
 Rhodococcus erythropolis PR4	3	RER_59930	probable epoxide hydrolase	0.349	3	True	False	VQQERATEVNELLISFLRSL
+Rhodospirillum rubrum ATCC 11170	1	Rru_A0973	encapsulin-associated ferritin-like protein	0.851	-1	True	True	GSLGIGSLKGEAALARPPRL
+Rhodospirillum rubrum ATCC 11170	2	unannotated		0.404	-2	True	False	GENDRLTRSGPAGCHRILLP
+Rhodospirillum rubrum ATCC 11170	3	Rru_A0975	type II toxin-antitoxin system Phd/YefM family antitoxin	0.383	1	True	False	RSIAHYRQGQVAARDLVDNE
+Mycolicibacterium smegmatis MC2 155	1	MSMEG_5829	Dyp-type peroxidase	0.748	-1	True	True	SADPVHTDGSLGIGSLKGTR
+Mycolicibacterium smegmatis MC2 155	2	MSMEG_5831	phosphoribosylformylglycinamidine synthase subunit PurQ	0.329	1	False	False	GPSDDGLGLFYSALDAILSV
+Mycolicibacterium smegmatis MC2 155	3	MSMEG_5828	M18 family aminopeptidase	0.255	-2	False	False	MGAHDVAAYSAALQAFLSPA

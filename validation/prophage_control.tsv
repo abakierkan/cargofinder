@@ -14,3 +14,5 @@ Rhodococcus erythropolis PR4	AP008957.1_2558	Phage_capsid	2e-50	1	False	AP008957
 Rhodococcus erythropolis PR4	AP008957.1_4050	Phage_capsid	2e-42	1	False	AP008957.1_4049:Peptidase_S78
 Rhodococcus erythropolis PR4	AP008957.1_4587	Phage_capsid	3e-25	1	False	AP008957.1_4595:Phage_integrase
 Rhodococcus erythropolis PR4	AP008957.1_6083	Linocin_M18	9e-100	0	False	
+Rhodospirillum rubrum ATCC 11170	NC_007643.1_0998	Linocin_M18	3e-94	0	False	
+Mycolicibacterium smegmatis MC2 155	NC_008596.1_5613	Linocin_M18	2e-98	0	False	

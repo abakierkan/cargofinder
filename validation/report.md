@@ -11,16 +11,16 @@ the run; do not edit them by hand.
 - Truth: `validation/known_systems.tsv`, matched by locus tag via strand and stop
   coordinate. Ranks are within each shell's neighborhood.
 - Recall counts each cited cargo encoded as a separate gene and shown experimentally
-  (9 cargos). The *P. furiosus* fusion and the homology-inferred *R. erythropolis*
+  (11 cargos). The *P. furiosus* fusion and the homology-inferred *R. erythropolis*
   PR4 row are reported separately.
 
 ## Cargo recovery
 
-| top k | cargofinder, all 9 cargos | cargofinder, 4 adjacent cargos | adjacency only, adjacent cargos | tail only (composition), adjacent cargos | TP consensus only, adjacent cargos | cargo class only, adjacent cargos |
+| top k | cargofinder, all 11 cargos | cargofinder, 6 adjacent cargos | adjacency only, adjacent cargos | tail only (composition), adjacent cargos | TP consensus only, adjacent cargos | cargo class only, adjacent cargos |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 4/9 | 4/4 | 3/4 | 2/4 | 4/4 | 4/4 |
-| 3 | 4/9 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 |
-| 5 | 4/9 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 |
+| 1 | 6/11 | 6/6 | 5/6 | 3/6 | 6/6 | 6/6 |
+| 3 | 6/11 | 6/6 | 6/6 | 5/6 | 6/6 | 6/6 |
+| 5 | 6/11 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 |
 
 The baselines count ties against the known cargo: a method that cannot separate two
 genes has not found the right one.
@@ -38,6 +38,8 @@ genes has not found the right one.
 | Rhodococcus jostii RHA1 | RHA1_ro02407 | adjacent_operon | experimental | rank 1 of 10 | 0.681 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | dyp_peroxidase |
 | Rhodococcus erythropolis PR4 | RER_59910 | adjacent_operon | homology_inferred | rank 1 of 10 | 0.78 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | dyp_peroxidase |
 | Synechococcus elongatus PCC 7942 | Synpcc7942_B2661 | family_2a_operon | experimental | shell not detected |  |  |  |  |  |  |  |  |  |  |
+| Rhodospirillum rubrum ATCC 11170 | Rru_A0973 | adjacent_operon | experimental | rank 1 of 10 | 0.851 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | encapsulated_ferritin |
+| Mycolicibacterium smegmatis MC2 155 | MSMEG_5829 | adjacent_operon | experimental | rank 1 of 10 | 0.748 | 1 | 0 | 4 | 0 | 1 | 0 | 1 | 0 | dyp_peroxidase |
 
 Reported separately:
 
@@ -71,11 +73,11 @@ encapsulin cargo; the rest are broad enzyme families scored lower.
 
 | measure | value |
 | --- | --- |
-| Candidates scanned | 60 |
-| Matched some cargo class | 10 |
-| ...that are known cargo | 5 |
+| Candidates scanned | 80 |
+| Matched some cargo class | 12 |
+| ...that are known cargo | 7 |
 | ...that are not known cargo | 5 |
-| Matched by an *encapsulin-specific* family | 3 |
+| Matched by an *encapsulin-specific* family | 4 |
 | ...of those, not a listed cargo | 1 |
 
 | organism | locus | cargo_class | pfam | encapsulin_specific | rank_in_shell | gene_distance | is_known_cargo |
@@ -90,6 +92,8 @@ encapsulin cargo; the rest are broad enzyme families scored lower.
 | Pyrococcus furiosus DSM 3638 | PF1196 | rubrerythrin | PF02915 | False | 5 | 5 | False |
 | Rhodococcus jostii RHA1 | RHA1_ro02407 | dyp_peroxidase | PF20628 | False | 1 | -1 | True |
 | Rhodococcus erythropolis PR4 | RER_59910 | dyp_peroxidase | PF20628 | False | 1 | 1 | True |
+| Rhodospirillum rubrum ATCC 11170 | Rru_A0973 | encapsulated_ferritin | PF22277 | True | 1 | -1 | True |
+| Mycolicibacterium smegmatis MC2 155 | MSMEG_5829 | dyp_peroxidase | PF20628 | False | 1 | -1 | True |
 
 Every listed cargo that fell inside a window was given a biologically correct
 class: the ferritin-like cargos as encapsulated ferritin, the peroxidases as
@@ -135,7 +139,7 @@ alongside the true encapsulins.
 
 | outcome | count |
 | --- | --- |
-| True encapsulin shells wrongly flagged | 0/6 |
+| True encapsulin shells wrongly flagged | 0/8 |
 | Phage capsid hits (PF05065) correctly flagged | 2/9 |
 
 | organism | shell_gene | profile | shell_evalue | marker_families | flagged | markers |
@@ -155,6 +159,8 @@ alongside the true encapsulins.
 | Rhodococcus erythropolis PR4 | AP008957.1_4050 | Phage_capsid | 2e-42 | 1 | False | AP008957.1_4049:Peptidase_S78 |
 | Rhodococcus erythropolis PR4 | AP008957.1_4587 | Phage_capsid | 3e-25 | 1 | False | AP008957.1_4595:Phage_integrase |
 | Rhodococcus erythropolis PR4 | AP008957.1_6083 | Linocin_M18 | 9e-100 | 0 | False |  |
+| Rhodospirillum rubrum ATCC 11170 | NC_007643.1_0998 | Linocin_M18 | 3e-94 | 0 | False |  |
+| Mycolicibacterium smegmatis MC2 155 | NC_008596.1_5613 | Linocin_M18 | 2e-98 | 0 | False |  |
 
 The screen does not misfire on any true encapsulin locus in this set, but it
 catches only 2 of 9 phage capsid hits. The misses
@@ -190,6 +196,8 @@ Highest-scoring gene that is not listed cargo, per organism:
 | Pyrococcus furiosus DSM 3638 | PF1192 | hypothetical protein | 0.744 | 1 | PEQVTELKGGFEEVQGANWN |
 | Rhodococcus jostii RHA1 | RHA1_ro02409 | conserved hypothetical protein | 0.305 | 1 | ALLFTMVTYTFGGLYLLFGG |
 | Rhodococcus erythropolis PR4 | RER_59920 | hypothetical protein | 0.395 | 2 | DGKIFEIPAGFDAGAQAATP |
+| Rhodospirillum rubrum ATCC 11170 | unannotated |  | 0.404 | -2 | GENDRLTRSGPAGCHRILLP |
+| Mycolicibacterium smegmatis MC2 155 | MSMEG_5831 | phosphoribosylformylglycinamidine synthase subunit PurQ | 0.329 | 1 | GPSDDGLGLFYSALDAILSV |
 
 These genes are unconfirmed, not proven non-cargo. Full top-3 lists are in
 `validation/false_flags.tsv`.
@@ -201,23 +209,27 @@ next to at least two shells:
 
 | shells | members |
 | --- | --- |
-| 3 | RER_59910, RHA1_ro02407, Rv0799c |
+| 4 | MSMEG_5829, RER_59910, RHA1_ro02407, Rv0799c |
+| 2 | MSMEG_5827, Rv0801 |
+| 2 | MSMEG_5828, Rv0800 |
 
 Listed cargo in the pooled run:
 
 | organism | known_cargo | rank_in_shell | shells_in_cluster | score_total |
 | --- | --- | --- | --- | --- |
 | Thermotoga maritima MSB8 | TM0786 | 1 | 1 | 0.798 |
-| Mycobacterium tuberculosis H37Rv | Rv0799c | 1 | 3 | 0.805 |
+| Mycobacterium tuberculosis H37Rv | Rv0799c | 1 | 4 | 0.805 |
 | Mycobacterium tuberculosis H37Rv | Rv3841 | not in a window |  |  |
 | Mycobacterium tuberculosis H37Rv | Rv3607c | not in a window |  |  |
 | Myxococcus xanthus DK 1622 | MXAN_3557 | 1 | 1 | 0.802 |
 | Myxococcus xanthus DK 1622 | MXAN_4464 | not in a window |  |  |
 | Myxococcus xanthus DK 1622 | MXAN_2410 | not in a window |  |  |
 | Pyrococcus furiosus DSM 3638 | PF1192 | 1 | 1 | 0.744 |
-| Rhodococcus jostii RHA1 | RHA1_ro02407 | 1 | 3 | 0.761 |
-| Rhodococcus erythropolis PR4 | RER_59910 | 1 | 3 | 0.86 |
+| Rhodococcus jostii RHA1 | RHA1_ro02407 | 1 | 4 | 0.761 |
+| Rhodococcus erythropolis PR4 | RER_59910 | 1 | 4 | 0.86 |
 | Synechococcus elongatus PCC 7942 | Synpcc7942_B2661 | not in a window |  |  |
+| Rhodospirillum rubrum ATCC 11170 | Rru_A0973 | 1 | 1 | 0.851 |
+| Mycolicibacterium smegmatis MC2 155 | MSMEG_5829 | 1 | 4 | 0.828 |
 
 Clustering at 30% identity and 80% coverage groups only sequences that stay similar
 over most of their length, so divergent or short cargo may not cluster.
@@ -247,6 +259,8 @@ over most of their length, so divergent or short cargo may not cluster.
 | Rhodococcus jostii RHA1 | GCF_000014565.1 | CP000431.1 | CP000431.1 | 613a79c1bfff0c03 |
 | Rhodococcus erythropolis PR4 | GCF_000010105.1 | AP008957.1 | AP008957.1 | 2982e459c19ee533 |
 | Synechococcus elongatus PCC 7942 | GCF_000012525.1 | NC_007595.1 | NC_007595.1 | 5c07c369fc6e1b0c |
+| Rhodospirillum rubrum ATCC 11170 | GCF_000013085.1 | NC_007643.1 | NC_007643.1 | 7965f84bd4798b7c |
+| Mycolicibacterium smegmatis MC2 155 | GCF_000015005.1 | NC_008596.1 | NC_008596.1 | 6ee07d725df3aad7 |
 
 ## Reproduce
 

@@ -9,3 +9,5 @@ Pyrococcus furiosus DSM 3638	PF1195	rubrerythrin	PF02915	False	4	4	False
 Pyrococcus furiosus DSM 3638	PF1196	rubrerythrin	PF02915	False	5	5	False
 Rhodococcus jostii RHA1	RHA1_ro02407	dyp_peroxidase	PF20628	False	1	-1	True
 Rhodococcus erythropolis PR4	RER_59910	dyp_peroxidase	PF20628	False	1	1	True
+Rhodospirillum rubrum ATCC 11170	Rru_A0973	encapsulated_ferritin	PF22277	True	1	-1	True
+Mycolicibacterium smegmatis MC2 155	MSMEG_5829	dyp_peroxidase	PF20628	False	1	-1	True

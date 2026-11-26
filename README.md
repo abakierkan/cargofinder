@@ -126,20 +126,20 @@ Anchor motifs resolved experimentally by [Altenburg et al. (2021)](https://doi.o
 
 ## Validation results
 
-Run on one complete NCBI replicon per organism, with default parameters, the PF04454 profile and no motifs. Truth is [known_systems.tsv](validation/known_systems.tsv), matched by locus tag. The full generated output is in [validation/report.md](validation/report.md).
+Run on one complete NCBI replicon for each of nine organisms, with default parameters, the PF04454 profile and no motifs. Truth is [known_systems.tsv](validation/known_systems.tsv), matched by locus tag. The full generated output is in [validation/report.md](validation/report.md).
 
 | Cargo recovered at rank 1 within its shell | Result |
 | :--- | :---: |
-| All cited, experimentally shown, separately encoded cargos | **4 / 9** |
-| Those encoded next to the shell | 4 / 4 |
-| Adjacent cargos, position alone (ties count against) | 3 / 4 |
-| Adjacent cargos, cargo class alone | 4 / 4 |
-| Adjacent cargos, TP consensus similarity alone | 4 / 4 |
-| Adjacent cargos, composition heuristic alone (ties count against) | 2 / 4 |
+| All cited, experimentally shown, separately encoded cargos | **6 / 11** |
+| Those encoded next to the shell | 6 / 6 |
+| Adjacent cargos, position alone (ties count against) | 5 / 6 |
+| Adjacent cargos, cargo class alone | 6 / 6 |
+| Adjacent cargos, TP consensus similarity alone | 6 / 6 |
+| Adjacent cargos, composition heuristic alone (ties count against) | 3 / 6 |
 
-Cargo class and TP consensus each rank all four known cargos first; position alone gets 3 of 4; the composition heuristic gets 2 of 4. **Four cases is far too few to call that a result**, and the systems are related to one another. It is, however, why the composition heuristic was down-weighted and the two literature-grounded signals were brought in, and all components are reported separately so you can check them on your own data.
+Cargo class and TP consensus each rank all six known adjacent cargos first; position alone gets 5 of 6; the composition heuristic gets 3 of 6. **Six cases is still far too few to call that a result**, and several systems are related to one another. It is, however, why the composition heuristic was down-weighted and the two literature-grounded signals were brought in, and all components are reported separately so you can check them on your own data.
 
-Every known cargo in a window was given a biologically correct class: the ferritin-like cargos as encapsulated ferritin, the peroxidases as DyP. Of 60 candidates scanned, 10 matched some cargo class; the non-cargo matches were all co-located ferritin-like and rubrerythrin genes in the *P. furiosus* iron locus. Full table in [validation/report.md](validation/report.md) and [cargo_class_calls.tsv](validation/cargo_class_calls.tsv).
+Every known cargo in a window was given a biologically correct class: the ferritin-like cargos as encapsulated ferritin, the peroxidases as DyP. Of 80 candidates scanned, 12 matched some cargo class; the non-cargo matches were all co-located ferritin-like and rubrerythrin genes in the *P. furiosus* iron locus, and adding two further genomes added none. Full table in [validation/report.md](validation/report.md) and [cargo_class_calls.tsv](validation/cargo_class_calls.tsv).
 
 | Organism | Known cargo | Outcome |
 | :--- | :--- | :--- |
@@ -151,6 +151,8 @@ Every known cargo in a window was given a biologically correct class: the ferrit
 | *M. xanthus* DK 1622 | `MXAN_4464` EncC | **Missed**: outside window |
 | *M. xanthus* DK 1622 | `MXAN_2410` EncD | **Missed**: outside window |
 | *R. jostii* RHA1 | `RHA1_ro02407` DypB | Rank 1 of 10 |
+| *R. rubrum* ATCC 11170 | `Rru_A0973` EncFtn | Rank 1 of 10 |
+| *M. smegmatis* MC2 155 | `MSMEG_5829` MsDyP | Rank 1 of 10 |
 | *S. elongatus* PCC 7942 | `Synpcc7942_B2661` | **Missed**: shell not detected with the default profile |
 
 Failures and caveats:
@@ -158,9 +160,9 @@ Failures and caveats:
 - *S. elongatus* with `PF19307` added: the shell is detected, but the cargo ranks only 3rd of 10, with or without `--termini both`. Expected: this cargo uses an N-terminal targeting sequence and is not Family 1, so the Family 1 consensus does not help it.
 - *P. furiosus* is a **false positive of the benchmark design**, not a recovery. `PF1192` ranks first, but it and `PF1191` are one 345-aa protein in PDB 2E0Z, split in two by the annotation. Notably the TP consensus signal ranks it 9th of 10, correctly declining to support the artifact that adjacency ranks 1st.
 - *R. erythropolis* PR4 `RER_59910` ranks first, but it is not counted: the experiments we found used strain N771, so this row is homology-inferred.
-- **False flags**: in *M. xanthus* a sigma-54 regulator scores 0.594, against the true cargo at 0.682. All top-3 lists are in [false_flags.tsv](validation/false_flags.tsv).
-- **Recurrence**: pooling the genomes clusters only the three DyP homologues. The ferritin-like cargos do not cluster at the default thresholds.
-- **Prophage screening**: 0 of 6 true encapsulin shells were wrongly flagged, but only 2 of 9 phage capsid hits were caught, so sensitivity is weak. An unflagged locus means "not evidently prophage", never "confirmed encapsulin". The worked positive control is *M. tuberculosis* `Rv2650c` of the phiRv1 prophage.
+- **False flags**: the top-3 list per shell is in [false_flags.tsv](validation/false_flags.tsv). Unconfirmed is not the same as proven non-cargo.
+- **Recurrence**: pooling the genomes clusters the four DyP homologues, but the ferritin-like cargos still do not cluster at the default thresholds despite now numbering four, because they are too divergent over their length.
+- **Prophage screening**: 0 of 8 true encapsulin shells were wrongly flagged, but only 2 of 9 phage capsid hits were caught, so sensitivity is weak. An unflagged locus means "not evidently prophage", never "confirmed encapsulin". The worked positive control is *M. tuberculosis* `Rv2650c` of the phiRv1 prophage.
 - **Not blind**: parameters were not fitted to this set, but the weights and features were chosen with these systems in mind, and the composition heuristic was down-weighted after seeing it underperform here. Treat the comparison between components as optimistic.
 - The set is small and related systems count more than once, so these numbers do not predict performance on new genomes. Position alone does nearly as well here.
 - Only the listed replicon was scanned per organism, not whole assemblies.

@@ -1,0 +1,2 @@
+gene_id	contig_id	start	end	strand	length_aa	profile_name	profile_acc	evalue	bitscore	prophage_marker_families	is_probable_prophage_locus
+NC_008596.1_5613	NC_008596.1	5897635	5898432	1	265	Linocin_M18	PF04454.19	1.3605937007279399e-96	321.0	0	False

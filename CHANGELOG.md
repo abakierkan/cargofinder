@@ -15,6 +15,12 @@
   so totals stay comparable instead of being uniformly depressed.
 - Validation gained a cargo-class-only baseline and a cargo class recognition
   section (`validation/cargo_class_calls.tsv`).
+- Two systems added to `validation/known_systems.tsv`, taking the benchmark from
+  4 to 6 adjacent cargos: *Rhodospirillum rubrum* ATCC 11170 Rru_A0974/Rru_A0973
+  (encapsulated ferritin, He et al. 2016, doi:10.7554/eLife.18972) and
+  *Mycolicibacterium smegmatis* MC2 155 MSMEG_5830/MSMEG_5829 (MsDyP, Tang
+  et al. 2021, doi:10.1073/pnas.2025658118). Both locus-tag pairs are stated in
+  those papers and independently confirmed by the current RefSeq annotation.
 - `score_tp_consensus`: BLOSUM62 similarity of each terminus to the published
   Family 1 targeting-peptide consensus `SDGSLGIGSLKRS` (Giessen & Silver 2017),
   reproducing the comparison Andreas & Giessen (2021) made with `blastp`. New
