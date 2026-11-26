@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.2.0] - 2026-11-26
 ### Added
 - `score_cargo_class` and `cargo.py`: candidates are scanned against 15 Pfam
   families marking the encapsulin cargo classes named by Andreas & Giessen

@@ -14,7 +14,7 @@ E-value Cutoff:      1e-05
 Clustering:          MMseqs2 across 2 shells
 Profiles:            PF04454.19, PF19307.7
 -----------------------------------------------------------
-cargofinder:         v0.1.0
+cargofinder:         v0.2.0
 pyhmmer:             v0.12.3
 pyrodigal:           v3.7.1
 MMseqs2:             18.8cc5c

@@ -1,6 +1,6 @@
 [workspace]
 name = "cargofinder"
-version = "0.1.0"
+version = "0.2.0"
 description = "Encapsulin cargo candidate discovery tool"
 authors = ["Abdulbaki Erkan <abakierkan@users.noreply.github.com>"]
 channels = ["conda-forge", "bioconda"]

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cargofinder"
-version = "0.1.0"
+version = "0.2.0"
 description = "Discovery and ranking of encapsulin cargo candidates from bacterial and archaeal genomes"
 readme = "README.md"
 requires-python = ">=3.10"

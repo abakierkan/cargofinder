@@ -18,7 +18,7 @@ from cargofinder.reporting import (
 from cargofinder.scoring import ScoredCandidate, score_candidates
 from cargofinder.shells import ShellHit, detect_shells
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "Gene",

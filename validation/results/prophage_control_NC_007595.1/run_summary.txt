@@ -14,7 +14,7 @@ E-value Cutoff:      1e-05
 Clustering:          not run
 Profiles:            PF04454.20, PF05065.21
 -----------------------------------------------------------
-cargofinder:         v0.1.0
+cargofinder:         v0.2.0
 pyhmmer:             v0.12.3
 pyrodigal:           v3.7.1
 MMseqs2:             not used

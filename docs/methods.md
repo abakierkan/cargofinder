@@ -1,4 +1,4 @@
-# Methods: `cargofinder` v0.1
+# Methods: `cargofinder` v0.2
 
 This document describes what the code does, why, and where it falls short. The formulas match `src/cargofinder/scoring.py`.
 

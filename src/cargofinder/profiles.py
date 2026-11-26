@@ -99,7 +99,7 @@ def fetch_pfam_profile(
 
     req = urllib.request.Request(
         url,
-        headers={"User-Agent": "cargofinder/0.1.0 (academic research)"},
+        headers={"User-Agent": "cargofinder/0.2.0 (academic research)"},
     )
 
     try:
