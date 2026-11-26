@@ -1,6 +1,34 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `score_tp_consensus`: BLOSUM62 similarity of each terminus to the published
+  Family 1 targeting-peptide consensus `SDGSLGIGSLKRS` (Giessen & Silver 2017),
+  reproducing the comparison Andreas & Giessen (2021) made with `blastp`. New
+  `substitution.py` holds BLOSUM62 and the ungapped window scan; no new
+  dependency.
+- `data/published_tp_motifs.json`: targeting-peptide anchor motifs from
+  Altenburg et al. (2021), each quoting its source sentence. Opt-in via
+  `--motifs`.
+- Prophage screening (`prophage.py`): the genes within +/-20 of each shell are
+  scanned for four phage marker families, and a locus with >=2 distinct families
+  is flagged in `shells.tsv` and on every candidate row. New
+  `--drop-prophage-loci` excludes flagged loci. `fetch-profiles` now also
+  downloads the marker profiles into `profiles/phage_markers/`.
+- Validation gained a TP-consensus-only baseline and a prophage screening
+  control (`validation/prophage_control.tsv`).
+
+### Changed
+- Default weights: `w_distance` 0.35 -> 0.30, `w_operon` 0.25 -> 0.20,
+  `w_tail_features` 0.25 -> 0.15, new `w_tp_consensus` 0.20. The invented
+  composition heuristic was down-weighted in favour of the signal with a
+  published basis, after the benchmark showed it ranked only 2 of 4 adjacent
+  cargos first against 4 of 4 for the consensus similarity. Scores from v0.1
+  are not comparable with these.
+- README and `docs/methods.md` now state plainly that the method is not new and
+  credit Andreas & Giessen (2021) as its source, and document that Family 2B and
+  Family 3 have no Pfam profile and so cannot be detected at all.
+
 
 ## [0.1.0]
 ### Added

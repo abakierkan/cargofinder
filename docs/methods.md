@@ -10,6 +10,32 @@ Cargo genes are often next to the shell gene, but not always. *M. tuberculosis* 
 
 Targeting peptides are weakly conserved, so the output is a ranking of candidates, never a definitive call.
 
+## 1a. Relation to prior work
+
+The method here is not new. The genome-mining approach it implements was
+established by **Andreas & Giessen (2021)**, who searched prokaryotic genomes
+with HMM profiles, computed genome neighborhoods extending 20 ORFs either side
+of each shell gene, and assigned Family 1 cargo by comparing proteins encoded
+within 5000 bp of the shell against the targeting-peptide consensus
+`SDGSLGIGSLKRS` from Giessen & Silver (2017). They curated over 6,000
+encapsulin-like systems that way and defined the family numbering used here.
+Trujillo & Komeili (2025) apply comparable comparative genomics across
+prokaryotic organelles more broadly.
+
+cargofinder deliberately reimplements that logic rather than extending it. What
+it adds is engineering and transparency, not biological insight:
+
+1. An installable, deterministic tool with recorded tool versions and profile
+   checksums, rather than an analysis performed once.
+2. A score broken into named components, all of which appear in every output
+   row, so a ranking can be inspected instead of trusted.
+3. A benchmark against literature-curated systems that reports its own failures,
+   including the components that do not help.
+
+Anyone needing a curated catalogue of encapsulin systems should use the
+published datasets. cargofinder is for ranking candidates in a genome that is
+not in those datasets, and for seeing why each candidate ranks where it does.
+
 ## 2. Pipeline
 
 1. **Input** (`io.py`, `genecalling.py`). One or more nucleotide FASTA files, with genes called by Pyrodigal, or one protein FASTA with a GFF3.
@@ -27,7 +53,7 @@ Targeting peptides are weakly conserved, so the output is a ranking of candidate
 
 ## 3. Scoring
 
-$$\text{Score} = 0.35\,S_\text{distance} + 0.25\,S_\text{operon} + 0.25\,S_\text{tail} + 0.15\,S_\text{recurrence}$$
+$$\text{Score} = 0.30\,S_\text{distance} + 0.20\,S_\text{operon} + 0.20\,S_\text{TP} + 0.15\,S_\text{tail} + 0.15\,S_\text{recurrence}$$
 
 Weights must be non-negative and sum to 1. Defaults are in `src/cargofinder/data/default_weights.json`; override them with `--weights`. Each row reports all four components.
 
@@ -35,11 +61,83 @@ Weights must be non-negative and sum to 1. Defaults are in `src/cargofinder/data
 | :--- | :--- |
 | $S_\text{distance}$ | $(W - d + 1) / W$ for gene distance $d \le W$. With $W=5$: 1.0, 0.8, 0.6, 0.4, 0.2 |
 | $S_\text{operon}$ | 1.0 for a likely operon member, 0.5 for same strand otherwise, 0.0 for opposite strand |
+| $S_\text{TP}$ | Best normalised ungapped BLOSUM62 similarity of the terminal slice to the published Family 1 TP consensus `SDGSLGIGSLKRS`, divided by the consensus self-score and clamped to $[0,1]$ |
 | $S_\text{tail}$ | $0.6\,h + 0.4\,\min(1, g / 0.35)$, where $h$ is the fraction of A, V, I, L, M, F, W, P and $g$ is the fraction of G, S |
 | $S_\text{tail}$ with motifs | $0.8 \times$ the above $+\ 0.2\,m$, where $m$ is 1 if any motif matches the C-terminus |
 | $S_\text{recurrence}$ | 0.2 for one shell, 0.6 for two, 1.0 for three or more shells in the cluster |
 
-**Why these weights.** They are judgment calls, not fitted values. Adjacency gets the most weight because it is the best documented signal. The tail gets less because it is weakly conserved. Recurrence gets the least because it depends on what else is in the run.
+**Why these weights.** They are judgment calls, not fitted values. Adjacency gets
+the most weight because it is the best documented signal. $S_\text{TP}$ gets more
+than $S_\text{tail}$ because it compares against a published consensus, whereas
+$S_\text{tail}$ is a cargofinder heuristic with no literature basis. Recurrence
+gets the least because it depends on what else is in the run.
+
+**On $S_\text{TP}$.** This reproduces, in a small deterministic form, the
+comparison Andreas & Giessen (2021) made with `blastp` against the same
+consensus. It is not BLAST: there is no E-value and no significance claim, only a
+bounded similarity. Two caveats matter when reading the number:
+
+- The consensus is itself Gly/Ser-rich, so generic Gly/Ser linkers pick up around
+  0.3 as background. The `GGSGGSGGSGG` control peptide, which Altenburg et al.
+  (2021) showed does not bind the shell pocket, scores about as high as some
+  native targeting peptides. Similarity alone does not separate a real anchor
+  from a flexible linker.
+- The consensus is a **Family 1** consensus. Family 2 and Family 4 cargo, and the
+  N-terminally targeted Family 2A cysteine desulfurase, have no reason to match
+  it, and the benchmark confirms the *S. elongatus* cargo does not rank first.
+
+The anchor motifs in `src/cargofinder/data/published_tp_motifs.json` address the
+first caveat in principle, since Altenburg et al. resolved which residues
+actually contact the shell. They are opt-in via `--motifs` and were not used to
+produce the benchmark numbers. Each one is three to six residues long and will
+match many non-cargo termini by chance.
+
+**What the benchmark says about these components.** On the four adjacent cargos,
+$S_\text{TP}$ alone ranks all 4 first; adjacency alone ranks 3 of 4 first; the
+composition heuristic $S_\text{tail}$ alone ranks 2 of 4 first. Four cases is far
+too few to call that a result, and the systems are related to one another, but it
+is the reason $S_\text{tail}$ was down-weighted from 0.25 to 0.15 in favour of
+$S_\text{TP}$. See `validation/report.md`.
+
+## 3a. Prophage screening
+
+Encapsulin shell proteins and bacteriophage major capsid proteins share the HK97
+fold and sit in the same Pfam clan, CL0373. A profile search for a shell
+therefore also returns phage capsids, and no E-value threshold separates them
+because the similarity is real. Andreas & Giessen (2021) report that their Family
+1 and Family 2 datasets "were significantly contaminated with bacteriophage
+capsid proteins", and removed those hits using genome neighborhood context.
+
+`prophage.py` does the same locally. It scans the genes within ±20 of each shell
+for four phage marker families and flags a locus carrying at least two distinct
+ones. The screening radius is wider than the ±5 cargo window on purpose: a
+prophage spans far more genes than could plausibly be cargo, and within ±5 even
+an obvious prophage capsid rarely shows two marker families.
+
+| Accession | Name | Role |
+| :--- | :--- | :--- |
+| PF03354 | TerL_ATPase | Terminase large subunit |
+| PF04586 | Peptidase_S78 | Caudovirus prohead protease |
+| PF00589 | Phage_integrase | Integrase |
+| PF05135 | Phage_connect_1 | Head-tail connector |
+
+The flag never enters the score. It is evidence about whether the **locus** is an
+encapsulin, not about whether a given neighbour is cargo, and mixing the two
+would conflate them. It appears in `shells.tsv` and on every candidate row;
+`--drop-prophage-loci` excludes flagged loci.
+
+**Known gap in our source.** Andreas & Giessen list the domains they filtered on
+as "PF0860, PF03354, PF04586, PF00589, PF05135". `PF0860` is not a well-formed
+Pfam accession, which have five digits, and the nearest valid accession, PF00860,
+is `Xan_ur_permease`, a xanthine/uracil permease family with no phage
+association. We could not determine what was intended and omitted it rather than
+guess. **Please check this against the paper.**
+
+**Measured behaviour, not assumed.** In the benchmark control, 0 of 6 true
+encapsulin shells were wrongly flagged and 2 of 9 phage capsid hits were caught.
+Sensitivity is therefore weak: the misses carry one marker family or none within
+the window. An unflagged locus means "not evidently prophage", never "confirmed
+encapsulin".
 
 **Consequences to keep in mind:**
 
@@ -60,12 +158,26 @@ Weights must be non-negative and sum to 1. Defaults are in `src/cargofinder/data
 2. **Distal cargo is missed**, and no window size fixes that.
 3. **Fusions can look like adjacent cargo.** *P. furiosus* PF1191 and PF1192 are annotated as two ORFs, but PDB 2E0Z shows one protein. PF1192 is ranked first as a "neighbor", which is an artifact. Whether the split is biological or a sequencing error was not determined.
 4. **Cargo without a recognizable terminal peptide gets no tail credit.** Targeting peptides are weakly conserved, so motif signals are noisy, and any motif match is only a hint.
-5. **Profile coverage.** Only PF04454 is scanned by default. Family 2A needs PF19307. PF05065 is a general phage capsid family, so expect prophage hits if you add it. Other encapsulin families may have no suitable profile here. See Andreas & Giessen (2021) for the wider diversity.
+5. **Profile coverage, and a real gap.** Only PF04454 is scanned by default.
+   Family 2A needs PF19307 and Family 4B needs PF08967. Checking Pfam clan CL0373
+   against the InterPro API on 2026-11-26, those three are the **only**
+   encapsulin-specific families in Pfam; every other member of the clan is a
+   phage capsid family. **Family 2B and Family 3 have no Pfam profile at all**,
+   so cargofinder cannot detect them, and no option changes that. Andreas &
+   Giessen (2021) built custom HMMs for Family 2 and Family 3 precisely because
+   no Pfam entry existed; supporting user-supplied custom profiles is the right
+   fix and is on the roadmap. PF05065 is a general phage capsid family, so expect
+   prophage hits if you add it.
 6. **E-value depends on the sequences searched**, including the length filter, so values are not comparable across differently sized inputs.
 7. **Recurrence can be inflated** by tandem shells whose windows overlap, because it counts shells rather than independent loci.
 
 ## 6. References
 
+- Altenburg WJ, Rollins N, Silver PA, Giessen TW (2021) Exploring targeting peptide-shell interactions in encapsulin nanocompartments. *Sci Rep* 11:4951. doi:10.1038/s41598-021-84329-z
+- Bibb LA, Hatfull GF (2002) Integration and excision of the *Mycobacterium tuberculosis* prophage-like element, phiRv1. *Mol Microbiol* 45:1515-1526. doi:10.1046/j.1365-2958.2002.03130.x
+- Fan X, Abd Alla AA, Xie J (2016) Distribution and function of prophage phiRv1 and phiRv2 among *Mycobacterium tuberculosis* complex. *J Biomol Struct Dyn* 34:233-238. doi:10.1080/07391102.2015.1022602
+- Henikoff S, Henikoff JG (1992) Amino acid substitution matrices from protein blocks. *PNAS* 89:10915-10919. doi:10.1073/pnas.89.22.10915
+- Trujillo HA, Komeili A (2025) Revealing the diversity of bacterial and archaeal organelles via comparative genomics. *Mol Biol Cell* 36:pe4. doi:10.1091/mbc.e20-08-0564
 - Akita F et al. (2007) The crystal structure of a virus-like particle from the hyperthermophilic archaeon *Pyrococcus furiosus* provides insight into the evolution of viruses. *J Mol Biol* 368:1469-1483. doi:10.1016/j.jmb.2007.02.075
 - Andreas MP, Giessen TW (2021) Large-scale computational discovery and analysis of virus-derived microbial nanocompartments. *Nat Commun* 12. doi:10.1038/s41467-021-25071-y
 - Cassidy-Amstutz C et al. (2016) Identification of a minimal peptide tag for in vivo and in vitro loading of encapsulin. *Biochemistry* 55:3461-3468. doi:10.1021/acs.biochem.6b00294

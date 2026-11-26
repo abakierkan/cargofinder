@@ -9,14 +9,29 @@ This is a reproducible ranking tool, not a discovery claim. Every candidate is a
 `cargofinder` finds encapsulin shell genes in bacterial and archaeal genomes with HMMER, then scores the genes around each shell using:
 
 1. **Position**: distance in genes, strand, and intergenic gaps.
-2. **Terminal peptide features**: hydrophobic and Gly/Ser content, plus optional motif regexes you supply.
-3. **Recurrence**: whether a gene family sits next to shells in several genomes (MMseqs2).
+2. **Targeting-peptide similarity**: BLOSUM62 similarity of each terminus to the published Family 1 targeting-peptide consensus `SDGSLGIGSLKRS` (Giessen & Silver 2017).
+3. **Terminal peptide composition**: hydrophobic and Gly/Ser content, plus optional motif regexes.
+4. **Recurrence**: whether a gene family sits next to shells in several genomes (MMseqs2).
+
+It also screens each shell locus for **prophage context**, because encapsulin shells share the HK97 fold with phage capsids and some shell hits are phage.
 
 It writes ranked tables (TSV and JSON) with every score component, a shell table, a gene-neighborhood figure per shell, and a run summary with parameters, tool versions and profile checksums.
 
 ## Why it exists
 
 Encapsulins enclose cargo enzymes that are often loaded through short targeting peptides. Those peptides are weakly conserved, so sequence searches alone miss cargo, and a score you cannot break down is hard to trust. `cargofinder` keeps the evidence for each candidate visible so you can judge it yourself.
+
+### This method is not new
+
+The genome-mining approach implemented here was established by **Andreas & Giessen (2021)**, *Large-scale computational discovery and analysis of virus-derived microbial nanocompartments* ([10.1038/s41467-021-25071-y](https://doi.org/10.1038/s41467-021-25071-y)). They searched prokaryotic genomes with HMM profiles, computed gene neighborhoods ±20 ORFs around each shell gene, and assigned Family 1 cargo by comparing nearby proteins to the targeting-peptide consensus `SDGSLGIGSLKRS` from Giessen & Silver (2017). They curated over 6,000 encapsulin-like systems and defined the family numbering this tool uses.
+
+`cargofinder` reimplements that logic. It adds engineering and transparency, not biological insight:
+
+1. An installable, deterministic tool with recorded tool versions and profile checksums, instead of an analysis run once.
+2. A score split into named components that all appear in every output row, so a ranking can be inspected rather than trusted.
+3. A benchmark against literature-curated systems that reports its own failures, including the components that turn out not to help.
+
+**If you want a curated catalogue of known encapsulin systems, use the published datasets, not this tool.** `cargofinder` is for ranking candidates in a genome that is not in those datasets, and for seeing why each candidate ranks where it does. It makes no discovery claim.
 
 ## Install
 
@@ -61,12 +76,17 @@ cargofinder run genome1.fasta genome2.fasta genome3.fasta --out results/
 # Add the Family 2A profile and score both termini
 cargofinder fetch-profiles --out profiles/ --extra PF19307
 cargofinder run genome.fasta --profiles profiles/ --termini both --out results/
+
+# Use the published targeting-peptide anchor motifs, and drop prophage loci
+cargofinder run genome.fasta --out results/ \
+    --motifs src/cargofinder/data/published_tp_motifs.json \
+    --drop-prophage-loci
 ```
 
 Outputs in `results/`:
 
 - `candidates.tsv`, `candidates.json`: ranked candidates with all score components.
-- `shells.tsv`: detected shell genes and their E-values.
+- `shells.tsv`: detected shell genes, their E-values, and prophage-context flags.
 - `run_summary.json`, `run_summary.txt`: counts, parameters, tool versions and profiles.
 - `plots/neighborhood_<shell>.png`: one figure per shell.
 
@@ -80,12 +100,20 @@ The score is a weighted sum. Weights are in [default_weights.json](src/cargofind
 
 | Component | Weight | Value |
 | :--- | :---: | :--- |
-| `score_distance` | 0.35 | 1.0 for the adjacent gene, falling by 1/W per gene (W = window) |
-| `score_operon` | 0.25 | 1.0 likely operon, 0.5 same strand, 0.0 opposite strand |
-| `score_tail_features` | 0.25 | 0.6 × hydrophobic fraction + 0.4 × min(1, Gly/Ser fraction / 0.35); motif matches, if used, take 20% |
+| `score_distance` | 0.30 | 1.0 for the adjacent gene, falling by 1/W per gene (W = window) |
+| `score_operon` | 0.20 | 1.0 likely operon, 0.5 same strand, 0.0 opposite strand |
+| `score_tp_consensus` | 0.20 | Normalised BLOSUM62 similarity of the terminus to the published Family 1 TP consensus `SDGSLGIGSLKRS` |
+| `score_tail_features` | 0.15 | 0.6 × hydrophobic fraction + 0.4 × min(1, Gly/Ser fraction / 0.35); motif matches, if used, take 20% |
 | `score_recurrence` | 0.15 | 0.2 for one shell, 0.6 for two, 1.0 for three or more |
 
-The weights are judgment calls, not fitted values. An adjacent same-strand operon gene scores 0.63 before any tail signal in a single-shell run, so a high score mostly reflects position. Read the components, not just the total. See [docs/methods.md](docs/methods.md).
+The weights are judgment calls, not fitted values. An adjacent same-strand operon gene scores 0.53 before any tail signal in a single-shell run, so a high score still mostly reflects position. Read the components, not just the total. See [docs/methods.md](docs/methods.md).
+
+`score_tp_consensus` reproduces, in a small deterministic form, the comparison Andreas & Giessen (2021) made with `blastp` against the same consensus. It is not BLAST and carries no E-value or significance claim. Two things to know before reading the number:
+
+- The consensus is itself Gly/Ser-rich, so generic Gly/Ser linkers score around 0.3 as background. The `GGSGGSGGSGG` control peptide, which Altenburg et al. (2021) showed does **not** bind the shell pocket, scores about as high as some native targeting peptides.
+- It is a **Family 1** consensus. Family 2 and Family 4 cargo have no reason to match it.
+
+Anchor motifs resolved experimentally by [Altenburg et al. (2021)](https://doi.org/10.1038/s41598-021-84329-z) ship in [published_tp_motifs.json](src/cargofinder/data/published_tp_motifs.json), each quoting the sentence it came from. They are opt-in via `--motifs`, were not used for the benchmark below, and are three to six residues long, so they match many non-cargo termini by chance.
 
 ## Validation results
 
@@ -96,7 +124,10 @@ Run on one complete NCBI replicon per organism, with default parameters, the PF0
 | All cited, experimentally shown, separately encoded cargos | **4 / 9** |
 | Those encoded next to the shell | 4 / 4 |
 | Adjacent cargos, position alone (ties count against) | 3 / 4 |
-| Adjacent cargos, tail features alone (ties count against) | 2 / 4 |
+| Adjacent cargos, TP consensus similarity alone | 4 / 4 |
+| Adjacent cargos, composition heuristic alone (ties count against) | 2 / 4 |
+
+On these four cases the published TP consensus similarity alone ranks every known cargo first, position alone gets 3 of 4, and the composition heuristic gets 2 of 4. **Four cases is far too few to call that a result**, and the systems are related to one another, but it is why the composition heuristic was down-weighted in favour of the consensus signal. It is also why `score_tp_consensus` is reported separately: you can check it yourself on your own data.
 
 | Organism | Known cargo | Outcome |
 | :--- | :--- | :--- |
@@ -112,12 +143,13 @@ Run on one complete NCBI replicon per organism, with default parameters, the PF0
 
 Failures and caveats:
 
-- *S. elongatus* with `PF19307` added: the shell is detected, but the cargo ranks only 3rd of 10, with or without `--termini both`.
-- *P. furiosus* is a **false positive of the benchmark design**, not a recovery. `PF1192` ranks first, but it and `PF1191` are one 345-aa protein in PDB 2E0Z, split in two by the annotation.
+- *S. elongatus* with `PF19307` added: the shell is detected, but the cargo ranks only 3rd of 10, with or without `--termini both`. Expected: this cargo uses an N-terminal targeting sequence and is not Family 1, so the Family 1 consensus does not help it.
+- *P. furiosus* is a **false positive of the benchmark design**, not a recovery. `PF1192` ranks first, but it and `PF1191` are one 345-aa protein in PDB 2E0Z, split in two by the annotation. Notably the TP consensus signal ranks it 9th of 10, correctly declining to support the artifact that adjacency ranks 1st.
 - *R. erythropolis* PR4 `RER_59910` ranks first, but it is not counted: the experiments we found used strain N771, so this row is homology-inferred.
-- **False flags**: in *M. xanthus* a sigma-54 regulator scores 0.71, close to the true cargo at 0.76. Non-cargo genes elsewhere reach 0.69. All top-3 lists are in [false_flags.tsv](validation/false_flags.tsv).
+- **False flags**: in *M. xanthus* a sigma-54 regulator scores 0.594, against the true cargo at 0.682. All top-3 lists are in [false_flags.tsv](validation/false_flags.tsv).
 - **Recurrence**: pooling the genomes clusters only the three DyP homologues. The ferritin-like cargos do not cluster at the default thresholds.
-- **Not blind**: parameters were not fitted to this set, but the weights and features were chosen with these systems in mind, and low complexity was removed from the score after reviewing an earlier benchmark.
+- **Prophage screening**: 0 of 6 true encapsulin shells were wrongly flagged, but only 2 of 9 phage capsid hits were caught, so sensitivity is weak. An unflagged locus means "not evidently prophage", never "confirmed encapsulin". The worked positive control is *M. tuberculosis* `Rv2650c` of the phiRv1 prophage.
+- **Not blind**: parameters were not fitted to this set, but the weights and features were chosen with these systems in mind, and the composition heuristic was down-weighted after seeing it underperform here. Treat the comparison between components as optimistic.
 - The set is small and related systems count more than once, so these numbers do not predict performance on new genomes. Position alone does nearly as well here.
 - Only the listed replicon was scanned per organism, not whole assemblies.
 
@@ -132,12 +164,15 @@ pixi run python validation/run_validation.py
 - **Targeting peptides are weakly conserved**, so motif signals are noisy.
 - **Adjacency is not proof.** Some cargo is encoded elsewhere or fused to the shell, and fusions annotated as two genes can look like adjacent cargo.
 - **Cargo without a recognizable terminal peptide will be missed** or get no tail credit. By default only the C-terminus is scored.
-- **Only PF04454 is scanned by default.** Family 2A requires `--extra PF19307`. PF05065 is a general phage capsid family, so expect prophage hits. Other encapsulin families are not covered in v0.1.
+- **Only PF04454 is scanned by default.** Family 2A requires `--extra PF19307`, Family 4B `--extra PF08967`. Checked against Pfam clan CL0373 on 2026-11-26, those three are the only encapsulin-specific Pfam families; every other clan member is a phage capsid family. **Family 2B and Family 3 have no Pfam profile at all**, so `cargofinder` cannot detect them and no option changes that. PF05065 is a general phage capsid family, so expect prophage hits.
+- **Shell hits can be phage.** Encapsulin shells share the HK97 fold with phage capsids, so prophage context is screened and reported, but the screen catches only some prophages (2 of 9 in the benchmark control).
 - Contigs are treated as linear, so windows do not wrap around circular replicons.
 - Scores from single-genome and multi-genome runs are not comparable, because recurrence is constant with one shell.
 
 ## Roadmap
 
+- User-supplied custom HMM profiles, so Family 2B and Family 3 can be covered at all; Andreas & Giessen (2021) had to build custom HMMs for exactly this reason.
+- Family-aware targeting-peptide references, instead of one Family 1 consensus for every shell.
 - More encapsulin family profiles.
 - Structure prediction and peptide-shell docking.
 - Machine-learning scoring, if enough validated examples exist.
