@@ -100,12 +100,13 @@ actually contact the shell. They are opt-in via `--motifs` and were not used to
 produce the benchmark numbers. Each one is three to six residues long and will
 match many non-cargo termini by chance.
 
-**What the benchmark says about these components.** On the four adjacent cargos,
-$S_\text{TP}$ alone ranks all 4 first; adjacency alone ranks 3 of 4 first; the
-composition heuristic $S_\text{tail}$ alone ranks 2 of 4 first. Four cases is far
-too few to call that a result, and the systems are related to one another, but it
-is the reason $S_\text{tail}$ was down-weighted from 0.25 to 0.15 in favour of
-$S_\text{TP}$. See `validation/report.md`.
+**What the benchmark says about these components.** On the six adjacent cargos,
+$S_\text{TP}$ alone ranks all 6 first, as does $S_\text{cargo}$; adjacency alone
+ranks 5 of 6 first; the composition heuristic $S_\text{tail}$ alone ranks 3 of 6
+first. Six cases is far too few to call that a result, and several of the systems
+are related to one another, but it is the reason $S_\text{tail}$ was cut from
+0.25 to 0.05 in favour of the two signals with a literature basis. See
+`validation/report.md`.
 
 ## 3b. Cargo class recognition
 
@@ -182,7 +183,7 @@ is `Xan_ur_permease`, a xanthine/uracil permease family with no phage
 association. We could not determine what was intended and omitted it rather than
 guess. **Please check this against the paper.**
 
-**Measured behaviour, not assumed.** In the benchmark control, 0 of 6 true
+**Measured behaviour, not assumed.** In the benchmark control, 0 of 8 true
 encapsulin shells were wrongly flagged and 2 of 9 phage capsid hits were caught.
 Sensitivity is therefore weak: the misses carry one marker family or none within
 the window. An unflagged locus means "not evidently prophage", never "confirmed
