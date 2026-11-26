@@ -191,13 +191,13 @@ pixi run python validation/run_validation.py
 
 - **Targeting peptides are weakly conserved**, so motif signals are noisy.
 - **Adjacency is not proof.** Some cargo is encoded elsewhere or fused to the shell, and fusions annotated as two genes can look like adjacent cargo.
-- **Cargo without a recognizable terminal peptide will be missed** or get no tail credit. By default only the C-terminus is scored.
+- **Cargo without a recognisable targeting signal gets no credit for one.** At a Family 1 locus only the C-terminus is scored unless you pass `--termini both`. At a Family 2 locus the N-terminal extension can only be measured where a cargo class domain is recognised, so a Family 2 candidate of an unknown class scores zero there — the same as a candidate with no extension at all.
 - **Novel cargo classes cannot be recognised.** `score_cargo_class` only knows the classes already in the literature, so genuinely new cargo gets nothing from the component that carries the most weight.
 - **PF04454 and PF19307 are scanned by default**, covering Family 1 and Family 2; Family 4B needs `--extra PF08967`. Checked against Pfam clan CL0373 on 2026-11-26, those three are the only encapsulin-specific Pfam families; every other clan member is a phage capsid family. **Family 3 has no Pfam profile at all**: to cover it you must supply your own HMM (see Quick start). Family 2B has no Pfam entry of its own either, but PF19307 detects 2B shells in practice. PF05065 is a general phage capsid family, so expect prophage hits.
 - **Targeting mode for unknown families is a guess.** Only Family 1 and Family 2A have a documented mechanism here; everything else falls back to C-terminal scoring. Check the `targeting_mode` column.
 - **Shell hits can be phage.** Encapsulin shells share the HK97 fold with phage capsids, so prophage context is screened and reported, but the screen catches only some prophages (2 of 9 in the benchmark control).
 - Contigs are treated as linear, so windows do not wrap around circular replicons.
-- Scores from single-genome and multi-genome runs are not comparable, because recurrence is constant with one shell.
+- Scores from single-genome and multi-genome runs are not comparable, because recurrence is constant with one shell. Nor are scores comparable across runs with different profile sets: without cargo class profiles that term is dropped and the remaining weights are rescaled.
 
 ## Roadmap
 

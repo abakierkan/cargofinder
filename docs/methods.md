@@ -90,9 +90,11 @@ bounded similarity. Two caveats matter when reading the number:
   (2021) showed does not bind the shell pocket, scores about as high as some
   native targeting peptides. Similarity alone does not separate a real anchor
   from a flexible linker.
-- The consensus is a **Family 1** consensus. Family 2 and Family 4 cargo, and the
-  N-terminally targeted Family 2A cysteine desulfurase, have no reason to match
-  it, and the benchmark confirms the *S. elongatus* cargo does not rank first.
+- The consensus is a **Family 1** consensus, so it is only applied at Family 1
+  loci. Family 2 cargo has no reason to match it: before targeting became
+  family-aware, the *S. elongatus* cysteine desulfurase scored 0.24 here and
+  ranked third. Family 4 has no documented mechanism and falls back to this
+  mode, which is a default rather than a claim.
 
 The anchor motifs in `src/cargofinder/data/published_tp_motifs.json` address the
 first caveat in principle, since Altenburg et al. resolved which residues
@@ -126,7 +128,7 @@ of the shell that found the locus:
 | Shell profile | Family | Targeting mode |
 | :--- | :--- | :--- |
 | PF04454 | 1 | C-terminal TP consensus similarity |
-| PF19307 | 2A | N-terminal extension length |
+| PF19307 | 2A, and 2B in practice | N-terminal extension length |
 | anything else | unknown | C-terminal, as a documented fallback |
 
 The mode used is recorded in `targeting_mode` on every row, so the fallback is
