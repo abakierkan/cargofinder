@@ -121,8 +121,13 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["c", "both"],
         default="c",
         help=(
-            "Terminus used in the tail score: C-terminal only (default) or the better "
-            "of both, for N-terminally targeted cargo."
+            "Terminus used by the composition and C-terminal targeting scores: "
+            "C-terminal only (default) or the better of both. It has no effect "
+            "at a Family 2 shell, where targeting is scored by N-terminal "
+            "domain length instead. Use it for Family 1 cargo with an "
+            "N-terminal targeting peptide, such as the ferredoxin secondary "
+            "cargo of some Firmicutes systems; N-termini need care because "
+            "signal peptides are also hydrophobic."
         ),
     )
     run_parser.add_argument(

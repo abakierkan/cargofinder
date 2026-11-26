@@ -20,7 +20,7 @@ It writes ranked tables (TSV and JSON) with every score component, a shell table
 
 ## Why it exists
 
-Encapsulins enclose cargo enzymes that are often loaded through short targeting peptides. Those peptides are weakly conserved, so sequence searches alone miss cargo, and a score you cannot break down is hard to trust. `cargofinder` keeps the evidence for each candidate visible so you can judge it yourself.
+Encapsulins enclose cargo enzymes loaded through targeting signals that differ by family: a short, weakly conserved C-terminal peptide in Family 1, a large disordered N-terminal domain in Family 2. Sequence searches alone therefore miss cargo, and a score you cannot break down is hard to trust. `cargofinder` keeps the evidence for each candidate visible so you can judge it yourself.
 
 ### This method is not new
 
@@ -51,7 +51,7 @@ Prefix the commands below with `pixi run`.
 
 ### pip
 
-`cargofinder` is not on PyPI, so install from a clone:
+`cargofinder` is not on PyPI yet. The name was free on PyPI when last checked (2026-11-26), so it stays available for a future release. Install from a clone:
 
 ```bash
 pip install .
@@ -64,7 +64,6 @@ Runs with two or more shells also need [MMseqs2](https://github.com/soedinglab/M
 ```bash
 # Download the shell profiles (PF04454 + PF19307), the cargo class and phage
 # marker profiles, with versions and checksums recorded
-
 cargofinder fetch-profiles --out profiles/
 
 # Genome FASTA: genes are called with Pyrodigal
