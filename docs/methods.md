@@ -65,7 +65,7 @@ Weights must be non-negative and sum to 1. Defaults are in `src/cargofinder/data
 | $S_\text{target}$ | **Family 1 shell:** best normalised ungapped BLOSUM62 similarity of the terminal slice to the published Family 1 TP consensus `SDGSLGIGSLKRS`. **Family 2A shell:** length of the unannotated N-terminal extension, ramped from 0 at 30 residues to 1 at 225. See section 3c |
 | $S_\text{tail}$ | $0.6\,h + 0.4\,\min(1, g / 0.35)$, where $h$ is the fraction of A, V, I, L, M, F, W, P and $g$ is the fraction of G, S |
 | $S_\text{tail}$ with motifs | $0.8 \times$ the above $+\ 0.2\,m$, where $m$ is 1 if any motif matches the C-terminus |
-| $S_\text{recurrence}$ | 0.2 for one shell, 0.6 for two, 1.0 for three or more shells in the cluster |
+| $S_\text{recurrence}$ | 0.2 for one gene, 0.6 for two, 1.0 for three or more independent genes in the cluster |
 
 **Why these weights.** They are judgment calls, not fitted values. Adjacency gets
 the most weight because it is the best documented signal. $S_\text{target}$ gets more
@@ -258,20 +258,29 @@ encapsulin".
 2. **Distal cargo is missed**, and no window size fixes that.
 3. **Fusions can look like adjacent cargo.** *P. furiosus* PF1191 and PF1192 are annotated as two ORFs, but PDB 2E0Z shows one protein. PF1192 is ranked first as a "neighbor", which is an artifact. Whether the split is biological or a sequencing error was not determined.
 4. **Cargo without a recognizable terminal peptide gets no tail credit.** Targeting peptides are weakly conserved, so motif signals are noisy, and any motif match is only a hint.
-5. **Profile coverage, and a real gap.** Only PF04454 is scanned by default.
-   Family 2A needs PF19307 and Family 4B needs PF08967. Checking Pfam clan CL0373
-   against the InterPro API on 2026-11-26, those three are the **only**
-   encapsulin-specific families in Pfam; every other member of the clan is a
-   phage capsid family. **Family 2B and Family 3 have no Pfam profile at all**,
-   so cargofinder cannot detect them, and no option changes that. Andreas &
-   Giessen (2021) built custom HMMs for Family 2 and Family 3 precisely because
-   no Pfam entry existed. Any `.hmm` placed in the directory given to
-   `--profiles` is scanned as a shell profile, which is how to cover them;
-   `fetch-profiles --extra` also accepts any Pfam accession, though cargofinder
-   makes no claim that an arbitrary family detects encapsulins. PF05065 is a
-   general phage capsid family, so expect prophage hits if you add it.
+5. **Profile coverage, and a remaining gap.** PF04454 and PF19307 are scanned by
+   default, covering Family 1 and Family 2; Family 4B needs `--extra PF08967`.
+   Checking Pfam clan CL0373 against the InterPro API on 2026-11-26, those three
+   are the **only** encapsulin-specific families in Pfam; every other member of
+   the clan is a phage capsid family.
+
+   PF19307 was promoted to a default in v0.2. Family 2 is the larger group in the
+   Andreas & Giessen (2021) census (3,523 systems against Family 1's 2,383), so
+   scanning Family 1 alone missed most encapsulin systems. On the benchmark
+   genomes it added three further shells, all annotated by RefSeq as encapsulin
+   shell proteins, with no false positives. Although Pfam names it for Family 2A,
+   it also detects Family 2B shells: the *M. xanthus* MXAN_6248/MXAN_6249 pair is
+   annotated Family 2B and is found at E ~ 1e-136.
+
+   **Family 3 still has no Pfam profile**, so cargofinder cannot detect it out of
+   the box. Andreas & Giessen built custom HMMs for Family 2 and Family 3 for
+   exactly this reason. Any `.hmm` placed in the directory given to `--profiles`
+   is scanned as a shell profile, which is how to cover it; `fetch-profiles
+   --extra` also accepts any Pfam accession, though cargofinder makes no claim
+   that an arbitrary family detects encapsulins. PF05065 is a general phage
+   capsid family, so expect prophage hits if you add it.
 6. **E-value depends on the sequences searched**, including the length filter, so values are not comparable across differently sized inputs.
-7. **Recurrence can be inflated** by tandem shells whose windows overlap, because it counts shells rather than independent loci.
+7. **Recurrence counts independent genes, not shells.** Tandem shells, such as the two adjacent Family 2B shell genes of *M. xanthus*, have overlapping windows and share neighbours, so counting shells let a single gene appear to recur on its own. Each gene now counts once however many shells it neighbours. Recurrence can still be inflated by closely related genomes in one run.
 
 ## 6. References
 

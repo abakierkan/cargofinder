@@ -62,7 +62,9 @@ Runs with two or more shells also need [MMseqs2](https://github.com/soedinglab/M
 ## Quick start
 
 ```bash
-# Download the shell profile (Pfam PF04454, with its version and checksum recorded)
+# Download the shell profiles (PF04454 + PF19307), the cargo class and phage
+# marker profiles, with versions and checksums recorded
+
 cargofinder fetch-profiles --out profiles/
 
 # Genome FASTA: genes are called with Pyrodigal
@@ -74,8 +76,8 @@ cargofinder run proteins.faa --gff genes.gff3 --out results/
 # Several genomes, so that recurrence can be measured
 cargofinder run genome1.fasta genome2.fasta genome3.fasta --out results/
 
-# Add the Family 2A profile and score both termini
-cargofinder fetch-profiles --out profiles/ --extra PF19307
+# Add the Family 4B profile and score both termini
+cargofinder fetch-profiles --out profiles/ --extra PF08967
 cargofinder run genome.fasta --profiles profiles/ --termini both --out results/
 
 # Scan your own HMM alongside the Pfam ones. Any .hmm in the directory is used
@@ -111,7 +113,7 @@ The score is a weighted sum. Weights are in [default_weights.json](src/cargofind
 | `score_cargo_class` | 0.30 | 1.0 for an encapsulin-cargo-specific Pfam family, 0.6 for a broad cargo-class family, 0.0 for no match |
 | `score_targeting` | 0.15 | Family-aware. Family 1 shell: BLOSUM62 similarity of the terminus to the published TP consensus `SDGSLGIGSLKRS`. Family 2A shell: length of the unannotated N-terminal extension |
 | `score_tail_features` | 0.05 | 0.6 × hydrophobic fraction + 0.4 × min(1, Gly/Ser fraction / 0.35); motif matches, if used, take 20% |
-| `score_recurrence` | 0.10 | 0.2 for one shell, 0.6 for two, 1.0 for three or more |
+| `score_recurrence` | 0.10 | 0.2 for one gene, 0.6 for two, 1.0 for three or more independent genes in the cluster |
 
 The weights are judgment calls, not fitted values. An adjacent same-strand operon gene scores 0.42 with no cargo or tail signal; recognised cargo in that position reaches about 0.72. Read the components, not just the total. See [docs/methods.md](docs/methods.md).
 
@@ -137,11 +139,11 @@ Anchor motifs resolved experimentally by [Altenburg et al. (2021)](https://doi.o
 
 ## Validation results
 
-Run on one complete NCBI replicon for each of nine organisms, with default parameters, the PF04454 profile and no motifs. Truth is [known_systems.tsv](validation/known_systems.tsv), matched by locus tag. The full generated output is in [validation/report.md](validation/report.md).
+Run on one complete NCBI replicon for each of nine organisms, with default parameters, the default profiles (PF04454 + PF19307) and no motifs. Truth is [known_systems.tsv](validation/known_systems.tsv), matched by locus tag. The full generated output is in [validation/report.md](validation/report.md).
 
 | Cargo recovered at rank 1 within its shell | Result |
 | :--- | :---: |
-| All cited, experimentally shown, separately encoded cargos | **6 / 11** |
+| All cited, experimentally shown, separately encoded cargos | **7 / 11** |
 | Those encoded next to the shell | 6 / 6 |
 | Adjacent cargos, position alone (ties count against) | 5 / 6 |
 | Adjacent cargos, cargo class alone | 6 / 6 |
@@ -149,6 +151,8 @@ Run on one complete NCBI replicon for each of nine organisms, with default param
 | Adjacent cargos, composition heuristic alone (ties count against) | 3 / 6 |
 
 Cargo class and the targeting signal each rank all six known adjacent cargos first; position alone gets 5 of 6; the composition heuristic gets 3 of 6. **Six cases is still far too few to call that a result**, and several systems are related to one another. It is, however, why the composition heuristic was down-weighted and the two literature-grounded signals were brought in, and all components are reported separately so you can check them on your own data.
+
+**Every listed shell was detected and every cargo that fell inside a window ranked first.** The four remaining misses are all distal cargo, which no neighbourhood scan can reach at any window size.
 
 Every known cargo in a window was given a biologically correct class: the ferritin-like cargos as encapsulated ferritin, the peroxidases as DyP. Of 80 candidates scanned, 12 matched some cargo class; the non-cargo matches were all co-located ferritin-like and rubrerythrin genes in the *P. furiosus* iron locus, and adding two further genomes added none. Full table in [validation/report.md](validation/report.md) and [cargo_class_calls.tsv](validation/cargo_class_calls.tsv).
 
@@ -164,16 +168,16 @@ Every known cargo in a window was given a biologically correct class: the ferrit
 | *R. jostii* RHA1 | `RHA1_ro02407` DypB | Rank 1 of 10 |
 | *R. rubrum* ATCC 11170 | `Rru_A0973` EncFtn | Rank 1 of 10 |
 | *M. smegmatis* MC2 155 | `MSMEG_5829` MsDyP | Rank 1 of 10 |
-| *S. elongatus* PCC 7942 | `Synpcc7942_B2661` | **Missed**: shell not detected with the default profile |
+| *S. elongatus* PCC 7942 | `Synpcc7942_B2661` CyD | Rank 1 of 10 |
 
 Failures and caveats:
 
-- *S. elongatus* with `PF19307` added: the shell is detected and the cargo now ranks **1st of 10**, because the targeting component switches to N-terminal mode for a Family 2A shell. With the default profile set the shell is not detected at all, which is why the table above still counts this system as missed.
 - *P. furiosus* is a **false positive of the benchmark design**, not a recovery. `PF1192` ranks first, but it and `PF1191` are one 345-aa protein in PDB 2E0Z, split in two by the annotation. Notably the TP consensus signal ranks it 9th of 10, correctly declining to support the artifact that adjacency ranks 1st.
 - *R. erythropolis* PR4 `RER_59910` ranks first, but it is not counted: the experiments we found used strain N771, so this row is homology-inferred.
 - **False flags**: the top-3 list per shell is in [false_flags.tsv](validation/false_flags.tsv). Unconfirmed is not the same as proven non-cargo.
-- **Recurrence**: pooling the genomes clusters the four DyP homologues, but the ferritin-like cargos still do not cluster at the default thresholds despite now numbering four, because they are too divergent over their length.
+- **Recurrence**: pooling the genomes clusters the four DyP homologues and the two Family 2A desulfurases, but the ferritin-like cargos still do not cluster at the default thresholds despite numbering four, because they are too divergent over their length.
 - **Prophage screening**: 0 of 8 true encapsulin shells were wrongly flagged, but only 2 of 9 phage capsid hits were caught, so sensitivity is weak. An unflagged locus means "not evidently prophage", never "confirmed encapsulin". The worked positive control is *M. tuberculosis* `Rv2650c` of the phiRv1 prophage.
+- **Three extra encapsulin shells** were found that are not in the truth set, all by PF19307 and all annotated as encapsulin shells by RefSeq. At two of the three, the gene cargofinder ranked first is annotated by RefSeq as an encapsulin cargo protein. That is the nearest thing to a blind test here, on three cases, and it is agreement with an annotation pipeline rather than with an experiment.
 - **Not blind**: parameters were not fitted to this set, but the weights and features were chosen with these systems in mind, and the composition heuristic was down-weighted after seeing it underperform here. Treat the comparison between components as optimistic.
 - The set is small and related systems count more than once, so these numbers do not predict performance on new genomes. Position alone does nearly as well here.
 - Only the listed replicon was scanned per organism, not whole assemblies.
@@ -190,7 +194,7 @@ pixi run python validation/run_validation.py
 - **Adjacency is not proof.** Some cargo is encoded elsewhere or fused to the shell, and fusions annotated as two genes can look like adjacent cargo.
 - **Cargo without a recognizable terminal peptide will be missed** or get no tail credit. By default only the C-terminus is scored.
 - **Novel cargo classes cannot be recognised.** `score_cargo_class` only knows the classes already in the literature, so genuinely new cargo gets nothing from the component that carries the most weight.
-- **Only PF04454 is scanned by default.** Family 2A requires `--extra PF19307`, Family 4B `--extra PF08967`. Checked against Pfam clan CL0373 on 2026-11-26, those three are the only encapsulin-specific Pfam families; every other clan member is a phage capsid family. **Family 2B and Family 3 have no Pfam profile at all**: to cover them you must supply your own HMM (see below). PF05065 is a general phage capsid family, so expect prophage hits.
+- **PF04454 and PF19307 are scanned by default**, covering Family 1 and Family 2; Family 4B needs `--extra PF08967`. Checked against Pfam clan CL0373 on 2026-11-26, those three are the only encapsulin-specific Pfam families; every other clan member is a phage capsid family. **Family 3 has no Pfam profile at all**: to cover it you must supply your own HMM (see Quick start). Family 2B has no Pfam entry of its own either, but PF19307 detects 2B shells in practice. PF05065 is a general phage capsid family, so expect prophage hits.
 - **Targeting mode for unknown families is a guess.** Only Family 1 and Family 2A have a documented mechanism here; everything else falls back to C-terminal scoring. Check the `targeting_mode` column.
 - **Shell hits can be phage.** Encapsulin shells share the HK97 fold with phage capsids, so prophage context is screened and reported, but the screen catches only some prophages (2 of 9 in the benchmark control).
 - Contigs are treated as linear, so windows do not wrap around circular replicons.

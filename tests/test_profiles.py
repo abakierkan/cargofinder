@@ -80,11 +80,12 @@ def test_fetch_default_profiles_mocked(tmp_path):
 
     with patch("urllib.request.urlopen", return_value=mock_resp):
         files = fetch_default_profiles(tmp_path, DEFAULT_SHELL_PROFILES)
-        assert len(files) == 1
-        assert files[0].name == "PF04454.hmm"
+        assert [f.name for f in files] == ["PF04454.hmm", "PF19307.hmm"]
 
         manifest_file = tmp_path / "manifest.json"
         assert manifest_file.exists()
         manifest = json.loads(manifest_file.read_text())
         assert "PF04454" in manifest
+        assert "PF19307" in manifest
         assert manifest["PF04454"]["family_label"] == "Family 1 (Linocin_M18)"
+        assert manifest["PF19307"]["family_label"] == "Family 2 (SrpI-like)"

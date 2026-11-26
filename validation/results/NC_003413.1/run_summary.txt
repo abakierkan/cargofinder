@@ -12,7 +12,7 @@ Tail Length:         20 residues
 Max Operon Gap:      150 bp
 E-value Cutoff:      1e-05
 Clustering:          skipped (one shell: recurrence is not informative)
-Profiles:            PF04454.19
+Profiles:            PF04454.19, PF19307.7
 -----------------------------------------------------------
 cargofinder:         v0.1.0
 pyhmmer:             v0.12.3

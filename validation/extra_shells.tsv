@@ -1,0 +1,4 @@
+organism	shell_locus	profile	shell_evalue	top_candidate	top_candidate_product	annotated_as_cargo
+Myxococcus xanthus DK 1622	MXAN_6248	SrpI-like	7e-137	MXAN_6247	family 2 encapsulin nanocompartment cargo protein terpene cyclase	True
+Myxococcus xanthus DK 1622	MXAN_6249	SrpI-like	1e-134	MXAN_6250	hypothetical protein	False
+Mycolicibacterium smegmatis MC2 155	MSMEG_4537	SrpI-like	6e-99	MSMEG_4538	family 2A encapsulin nanocompartment cargo protein cysteine desulfurase	True

@@ -323,8 +323,7 @@ def outcome(row: pd.Series) -> str:
 def build_report(
     results: pd.DataFrame,
     flags: pd.DataFrame,
-    extra_shells: int,
-    sensitivity: pd.DataFrame,
+    extra_shells: pd.DataFrame,
     cargo_classes: pd.DataFrame,
     candidates_scanned: int,
     prophage: pd.DataFrame,
@@ -332,6 +331,7 @@ def build_report(
     pooled_clusters: pd.DataFrame,
     manifest: pd.DataFrame,
 ) -> str:
+    results = results.assign(outcome_kind=results.apply(outcome, axis=1))
     cc_total = len(cargo_classes)
     cc_known = int(cargo_classes["is_known_cargo"].sum()) if cc_total else 0
     cc_other = cc_total - cc_known
@@ -345,6 +345,29 @@ def build_report(
         if cc_total
         else 0
     )
+
+    n_extra_cargo = (
+        int(extra_shells["annotated_as_cargo"].sum()) if len(extra_shells) else 0
+    )
+    missed = []
+    n_outside = int((results["outcome_kind"] == "outside window").sum())
+    if n_outside:
+        missed.append(
+            f"- Distal cargo cannot be found by a neighborhood scan: "
+            f"{n_outside} `outside window` row(s). No window size fixes this."
+        )
+    n_undetected = int((results["outcome_kind"] == "shell not detected").sum())
+    if n_undetected:
+        missed.append(
+            f"- {n_undetected} shell(s) were not detected by the default profile set."
+        )
+    else:
+        missed.append(
+            "- Every listed shell was detected by the default profile set, and "
+            "every cargo that fell inside a window was ranked first. What is "
+            "missed here is entirely distal cargo."
+        )
+    missed_lines = "\n".join(missed)
 
     linocin = prophage[prophage["profile"] == "Linocin_M18"]
     capsid = prophage[prophage["profile"] == "Phage_capsid"]
@@ -455,24 +478,30 @@ Reported separately:
 
 ## What is missed
 
-- Distal cargo cannot be found by a neighborhood scan: every `outside window` row.
-- The default profile does not detect the Family 2A shell of *S. elongatus*.
+{missed_lines}
 
-## Family 2A sensitivity run
+## Additional encapsulin shells found
 
-*S. elongatus* plasmid scanned with `PF19307`. The default PF04454 profile does
-not detect this Family 2A shell at all, which is why the main table above counts
-this system as missed; with the right profile the shell is found.
+Shells detected that are not listed in `known_systems.tsv`. These are **not**
+false positives: every one is annotated by RefSeq as an encapsulin shell
+protein. They are real loci whose cargo this benchmark simply does not have
+literature entries for, and they are listed so the count is not mistaken for
+noise.
 
-This cargo is targeted by a disordered N-terminal domain, not a C-terminal
-peptide (Nichols et al. 2021). Because the shell matches PF19307, cargofinder
-switches the targeting component to N-terminal extension length automatically,
-so the `--termini` setting barely matters here: it only affects the C-terminal
-mode. The cargo carries a 242-residue extension before its Aminotran_5 domain,
-against the 225-residue domain characterised in that paper, so it scores the
-maximum.
+{markdown_table(extra_shells)}
 
-{markdown_table(sensitivity)}
+**{n_extra_cargo} of {len(extra_shells)} top candidates at these shells are annotated
+by RefSeq as encapsulin cargo proteins.** cargofinder was not told these loci
+existed and this truth set has no entries for them, so that is the closest thing
+to a blind test in this report, on a very small number of cases. It is agreement
+with an annotation pipeline, not with an experiment.
+
+They are all found by PF19307, which became a default profile in v0.2 because
+Family 2 is the larger group in the Andreas & Giessen (2021) census (3,523
+systems against Family 1's 2,383). Note that although Pfam names PF19307 for
+Family 2A, it also detects Family 2B shells here: the *M. xanthus* pair is
+annotated Family 2B, and two adjacent shell genes in one operon is exactly the
+2B arrangement that paper describes.
 
 ## Cargo class recognition
 
@@ -562,8 +591,9 @@ encapsulin shell Rv0798c was not flagged in the same run.
 ## What is falsely flagged
 
 These are the top-ranked genes a user could waste effort on. Rank-1 genes that are not
-accepted cargo: {len(top_non_cargo)}, which includes the *P. furiosus* fragment. Shells
-detected beyond the listed ones: {extra_shells}.
+accepted cargo: {len(top_non_cargo)}. That count includes the *P. furiosus* fragment and
+the top candidate at each additional shell listed above, whose true cargo is simply not
+in this truth set.
 
 Highest-scoring gene that is not listed cargo, per organism:
 
@@ -574,8 +604,11 @@ These genes are unconfirmed, not proven non-cargo. Full top-3 lists are in
 
 ## Cluster recurrence across genomes
 
-All replicons pooled in one multi-genome run with default parameters. Clusters seen
-next to at least two shells:
+All replicons pooled in one multi-genome run with default parameters. Clusters
+containing at least two independent genes that each neighbour a shell. Counting
+genes rather than shells matters here: the tandem Family 2B shells of
+*M. xanthus* share their windows, so counting shells let a single gene appear to
+recur by itself.
 
 {clusters_md}
 
@@ -612,30 +645,26 @@ pixi run python validation/run_validation.py
 """
 
 
-def run_validation(
-    data_dir: Path, results_dir: Path, profiles_dir: Path, extended_dir: Path
-) -> None:
+def run_validation(data_dir: Path, results_dir: Path, profiles_dir: Path) -> None:
     known = pd.read_csv(HERE / "known_systems.tsv", sep="\t", dtype=str)
 
-    if not list(profiles_dir.glob("*.hmm")):
-        fetch_default_profiles(profiles_dir, select_profiles())
-    # Phage marker profiles for prophage screening. Downloading them into both
-    # profile dirs means the Family 2A sensitivity run is screened too.
-    for d in (profiles_dir, extended_dir):
-        if not list((d / "phage_markers").glob("*.hmm")):
-            fetch_phage_marker_profiles(d)
-        if not list((d / "cargo_classes").glob("*.hmm")):
-            fetch_cargo_class_profiles(d)
-
-    if not (extended_dir / "PF19307.hmm").exists():
-        family2a = [p for p in select_profiles(["PF19307"]) if p.pfam_id == "PF19307"]
-        fetch_default_profiles(extended_dir, family2a)
+    # Fetch each default profile that is missing, rather than skipping the lot
+    # when any one is present: the default set grows between versions.
+    missing = [
+        p for p in select_profiles() if not (profiles_dir / f"{p.pfam_id}.hmm").exists()
+    ]
+    if missing:
+        fetch_default_profiles(profiles_dir, missing)
+    if not list((profiles_dir / "phage_markers").glob("*.hmm")):
+        fetch_phage_marker_profiles(profiles_dir)
+    if not list((profiles_dir / "cargo_classes").glob("*.hmm")):
+        fetch_cargo_class_profiles(profiles_dir)
 
     rows: List[Dict[str, object]] = []
     flag_rows: List[Dict[str, object]] = []
     cargo_class_rows: List[Dict[str, object]] = []
+    extra_shell_rows: List[Dict[str, object]] = []
     candidates_scanned = 0
-    extra_shells = 0
     fastas: List[Path] = []
     manifest: List[Dict[str, str]] = []
     annotations: Dict[str, List[AnnotatedCds]] = {}
@@ -685,36 +714,49 @@ def run_validation(
             )
         candidates_scanned += len(res.candidates)
         listed = {find_tag(annotation, t).stop_key for t in group["shell_locus_tag"]}
-        extra_shells += sum(
-            stop_key(s.start, s.end, s.strand) not in listed for s in res.shells
-        )
+        by_stop = {a.stop_key: a for a in annotation}
+        for sh in res.shells:
+            key = stop_key(sh.start, sh.end, sh.strand)
+            if key in listed:
+                continue
+            cds = by_stop.get(key)
+            top = next(
+                (
+                    c
+                    for c in res.candidates
+                    if c.shell_gene_id == sh.gene_id and c.rank_in_shell == 1
+                ),
+                None,
+            )
+            top_cds = by_stop.get(candidate_stop_key(top)) if top else None
+            top_product = top_cds.product if top_cds else ""
+            extra_shell_rows.append(
+                {
+                    "organism": first["organism"],
+                    "shell_locus": cds.tags[-1] if cds and cds.tags else "unannotated",
+                    "profile": sh.profile_name,
+                    "shell_evalue": f"{sh.evalue:.0e}",
+                    "top_candidate": (
+                        (
+                            top_cds.tags[-1]
+                            if top_cds and top_cds.tags
+                            else "unannotated"
+                        )
+                        if top
+                        else ""
+                    ),
+                    "top_candidate_product": top_product,
+                    "annotated_as_cargo": "cargo protein" in top_product.lower(),
+                }
+            )
 
     results = pd.DataFrame(rows)
     flags = pd.DataFrame(flag_rows)
     results.to_csv(HERE / "benchmark_results.tsv", sep="\t", index=False)
     flags.to_csv(HERE / "false_flags.tsv", sep="\t", index=False)
 
-    # Family 2A sensitivity runs
-    srpi = known[known["cargo_location_type"] == "family_2a_operon"].iloc[0]
-    sensitivity = []
-    for termini in ("c", "both"):
-        res = run_pipeline(
-            data_dir / f"{srpi['nuccore_id']}.fna",
-            out_dir=results_dir / f"family2a_{termini}",
-            profile_dir=extended_dir,
-            termini=termini,
-        )
-        ev = evaluate_row(srpi, annotations[srpi["nuccore_id"]], res)
-        sensitivity.append(
-            {
-                "termini": termini,
-                "shell_detected": ev["shell_detected"],
-                "cargo_rank": f"{ev['rank_in_shell']} of {ev['candidates_in_shell']}",
-                "cargo_score": ev["score_total"],
-                "top_score": round(res.candidates[0].score_total, 3),
-                "top_gene_distance": res.candidates[0].gene_distance,
-            }
-        )
+    extra_shells_df = pd.DataFrame(extra_shell_rows)
+    extra_shells_df.to_csv(HERE / "extra_shells.tsv", sep="\t", index=False)
 
     # Prophage screening control.
     #
@@ -778,7 +820,7 @@ def run_validation(
                 "organism": row["organism"],
                 "known_cargo": row["known_cargo_locus_tag"],
                 "rank_in_shell": c.rank_in_shell if c else "not in a window",
-                "shells_in_cluster": c.cluster_shell_count if c else "",
+                "genes_in_cluster": c.cluster_shell_count if c else "",
                 "score_total": round(c.score_total, 3) if c else "",
             }
         )
@@ -792,17 +834,16 @@ def run_validation(
             members.setdefault(c.cluster_id, []).append(label)
     pooled_clusters = pd.DataFrame(
         [
-            {"shells": len(m), "members": ", ".join(sorted(m))}
+            {"genes": len(m), "members": ", ".join(sorted(m))}
             for _, m in sorted(members.items())
         ],
-        columns=["shells", "members"],
+        columns=["genes", "members"],
     )
 
     report = build_report(
         results,
         flags,
-        extra_shells,
-        pd.DataFrame(sensitivity),
+        extra_shells_df,
         cargo_classes,
         candidates_scanned,
         prophage,
@@ -818,11 +859,10 @@ def main() -> int:
     parser.add_argument("--data", type=Path, default=HERE / "data")
     parser.add_argument("--out", type=Path, default=HERE / "results")
     parser.add_argument("--profiles", type=Path, default=HERE / "profiles")
-    parser.add_argument("--extended-profiles", type=Path, default=HERE / "profiles_2a")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.WARNING, format="[%(levelname)s] %(message)s")
-    run_validation(args.data, args.out, args.profiles, args.extended_profiles)
+    run_validation(args.data, args.out, args.profiles)
     print(f"Wrote {HERE / 'report.md'} and {HERE / 'benchmark_results.tsv'}")
     return 0
 

@@ -6,8 +6,14 @@ Mycobacterium tuberculosis H37Rv	1	Rv0799c	hypothetical protein	0.725	1	True	Tru
 Mycobacterium tuberculosis H37Rv	2	Rv0797	insertion sequence element IS1547 transposase	0.301	-1	False	False	HTQPAAACHRSYCSRSCLSG
 Mycobacterium tuberculosis H37Rv	3	Rv0800	M18 family aminopeptidase	0.261	2	False	False	DVAAYSAALQAFLSAELSEA
 Myxococcus xanthus DK 1622	1	MXAN_3557	encapsulin nanocompartment cargo protein EncB	0.802	1	True	True	SHPLTVGSLRRGGGGSGSGR
+Myxococcus xanthus DK 1622	1	MXAN_6247	family 2 encapsulin nanocompartment cargo protein terpene cyclase	0.451	-1	True	False	GLGTSAARITSLFANLRSGA
 Myxococcus xanthus DK 1622	2	MXAN_3555	sigma-54-dependent transcriptional regulator	0.448	-1	True	False	MKEFGLRDTTPDGQEDGPDE
+Myxococcus xanthus DK 1622	1	MXAN_6250	hypothetical protein	0.433	1	True	False	SDDTESNTLEPLPLNNRRQR
 Myxococcus xanthus DK 1622	3	MXAN_3554	peptidoglycan DD-metalloendopeptidase family protein	0.416	-2	True	False	FEAEVRRMDGLLSASVVAGK
+Myxococcus xanthus DK 1622	2	MXAN_6247	family 2 encapsulin nanocompartment cargo protein terpene cyclase	0.401	-2	True	False	GLGTSAARITSLFANLRSGA
+Myxococcus xanthus DK 1622	2	MXAN_6250	hypothetical protein	0.383	2	True	False	SDDTESNTLEPLPLNNRRQR
+Myxococcus xanthus DK 1622	3	MXAN_6246	OmpA family protein	0.314	-2	True	False	TPEGRSANRRVEFVTSTTGE
+Myxococcus xanthus DK 1622	3	MXAN_6252	VOC family protein	0.27	3	True	False	PIPPSEDFAKQYEASALPVG
 Pyrococcus furiosus DSM 3638	1	PF1192	hypothetical protein	0.744	1	True	False	PEQVTELKGGFEEVQGANWN
 Pyrococcus furiosus DSM 3638	2	PF1193	hypothetical protein	0.585	2	True	False	HFRRGKPGESPYVSKFLKTR
 Pyrococcus furiosus DSM 3638	3	PF1190	hypothetical protein	0.48	-1	False	False	AEYELLLNWEMYSQMMHIGP
@@ -17,9 +23,15 @@ Rhodococcus jostii RHA1	3	RHA1_ro02405	protein kinase/ transcriptional regulator
 Rhodococcus erythropolis PR4	1	RER_59910	conserved hypothetical protein	0.78	1	True	True	TAPISDGSLGIGSLKRSAQQ
 Rhodococcus erythropolis PR4	2	RER_59920	hypothetical protein	0.395	2	True	False	DGKIFEIPAGFDAGAQAATP
 Rhodococcus erythropolis PR4	3	RER_59930	probable epoxide hydrolase	0.349	3	True	False	VQQERATEVNELLISFLRSL
+Synechococcus elongatus PCC 7942	1	Synpcc7942_B2661	family 2A encapsulin nanocompartment cargo protein cysteine desulfurase CyD	0.696	-1	True	True	EELETLAAAIRRIQTGSLAL
+Synechococcus elongatus PCC 7942	2	Synpcc7942_B2663	serine O-acetyltransferase EpsC	0.449	1	True	False	GSFISQAQIRSDNFESGGGI
+Synechococcus elongatus PCC 7942	3	Synpcc7942_B2664	cysteine synthase A	0.394	2	True	False	RYLSTALFDGIFNEQGLAVV
 Rhodospirillum rubrum ATCC 11170	1	Rru_A0973	encapsulin-associated ferritin-like protein	0.851	-1	True	True	GSLGIGSLKGEAALARPPRL
 Rhodospirillum rubrum ATCC 11170	2	unannotated		0.404	-2	True	False	GENDRLTRSGPAGCHRILLP
 Rhodospirillum rubrum ATCC 11170	3	Rru_A0975	type II toxin-antitoxin system Phd/YefM family antitoxin	0.383	1	True	False	RSIAHYRQGQVAARDLVDNE
 Mycolicibacterium smegmatis MC2 155	1	MSMEG_5829	Dyp-type peroxidase	0.748	-1	True	True	SADPVHTDGSLGIGSLKGTR
+Mycolicibacterium smegmatis MC2 155	1	MSMEG_4538	family 2A encapsulin nanocompartment cargo protein cysteine desulfurase	0.734	1	True	False	TFDEIDVFIDAVRRIAEGSV
+Mycolicibacterium smegmatis MC2 155	2	MSMEG_4539	LLM class flavin-dependent oxidoreductase	0.394	2	True	False	EEAYWFAEGAGAILRDRGLL
+Mycolicibacterium smegmatis MC2 155	3	MSMEG_4540	GNAT family N-acetyltransferase	0.344	3	True	False	ADAVDRLFAVPTAPHAGIVF
 Mycolicibacterium smegmatis MC2 155	2	MSMEG_5831	phosphoribosylformylglycinamidine synthase subunit PurQ	0.329	1	False	False	GPSDDGLGLFYSALDAILSV
 Mycolicibacterium smegmatis MC2 155	3	MSMEG_5828	M18 family aminopeptidase	0.255	-2	False	False	MGAHDVAAYSAALQAFLSPA

@@ -18,9 +18,9 @@ the run; do not edit them by hand.
 
 | top k | cargofinder, all 11 cargos | cargofinder, 6 adjacent cargos | adjacency only, adjacent cargos | tail only (composition), adjacent cargos | targeting signal only, adjacent cargos | cargo class only, adjacent cargos |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 6/11 | 6/6 | 5/6 | 3/6 | 6/6 | 6/6 |
-| 3 | 6/11 | 6/6 | 6/6 | 5/6 | 6/6 | 6/6 |
-| 5 | 6/11 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 |
+| 1 | 7/11 | 6/6 | 5/6 | 3/6 | 6/6 | 6/6 |
+| 3 | 7/11 | 6/6 | 6/6 | 5/6 | 6/6 | 6/6 |
+| 5 | 7/11 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 |
 
 The baselines count ties against the known cargo: a method that cannot separate two
 genes has not found the right one.
@@ -37,7 +37,7 @@ genes has not found the right one.
 | Pyrococcus furiosus DSM 3638 | PF1192 | natural_fusion | experimental | rank 1 of 10 | 0.744 | 1 | 0 | 8 | 0 | 9 | 0 | 1 | 0 | encapsulated_ferritin |
 | Rhodococcus jostii RHA1 | RHA1_ro02407 | adjacent_operon | experimental | rank 1 of 10 | 0.681 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | dyp_peroxidase |
 | Rhodococcus erythropolis PR4 | RER_59910 | adjacent_operon | homology_inferred | rank 1 of 10 | 0.78 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | dyp_peroxidase |
-| Synechococcus elongatus PCC 7942 | Synpcc7942_B2661 | family_2a_operon | experimental | shell not detected |  |  |  |  |  |  |  |  |  |  |
+| Synechococcus elongatus PCC 7942 | Synpcc7942_B2661 | family_2a_operon | experimental | rank 1 of 10 | 0.696 | 3 | 0 | 6 | 1 | 1 | 0 | 1 | 0 | cysteine_desulfurase |
 | Rhodospirillum rubrum ATCC 11170 | Rru_A0973 | adjacent_operon | experimental | rank 1 of 10 | 0.851 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | encapsulated_ferritin |
 | Mycolicibacterium smegmatis MC2 155 | MSMEG_5829 | adjacent_operon | experimental | rank 1 of 10 | 0.748 | 1 | 0 | 4 | 0 | 1 | 0 | 1 | 0 | dyp_peroxidase |
 
@@ -50,27 +50,35 @@ Reported separately:
 
 ## What is missed
 
-- Distal cargo cannot be found by a neighborhood scan: every `outside window` row.
-- The default profile does not detect the Family 2A shell of *S. elongatus*.
+- Distal cargo cannot be found by a neighborhood scan: 4 `outside window` row(s). No window size fixes this.
+- Every listed shell was detected by the default profile set, and every cargo that fell inside a window was ranked first. What is missed here is entirely distal cargo.
 
-## Family 2A sensitivity run
+## Additional encapsulin shells found
 
-*S. elongatus* plasmid scanned with `PF19307`. The default PF04454 profile does
-not detect this Family 2A shell at all, which is why the main table above counts
-this system as missed; with the right profile the shell is found.
+Shells detected that are not listed in `known_systems.tsv`. These are **not**
+false positives: every one is annotated by RefSeq as an encapsulin shell
+protein. They are real loci whose cargo this benchmark simply does not have
+literature entries for, and they are listed so the count is not mistaken for
+noise.
 
-This cargo is targeted by a disordered N-terminal domain, not a C-terminal
-peptide (Nichols et al. 2021). Because the shell matches PF19307, cargofinder
-switches the targeting component to N-terminal extension length automatically,
-so the `--termini` setting barely matters here: it only affects the C-terminal
-mode. The cargo carries a 242-residue extension before its Aminotran_5 domain,
-against the 225-residue domain characterised in that paper, so it scores the
-maximum.
+| organism | shell_locus | profile | shell_evalue | top_candidate | top_candidate_product | annotated_as_cargo |
+| --- | --- | --- | --- | --- | --- | --- |
+| Myxococcus xanthus DK 1622 | MXAN_6248 | SrpI-like | 7e-137 | MXAN_6247 | family 2 encapsulin nanocompartment cargo protein terpene cyclase | True |
+| Myxococcus xanthus DK 1622 | MXAN_6249 | SrpI-like | 1e-134 | MXAN_6250 | hypothetical protein | False |
+| Mycolicibacterium smegmatis MC2 155 | MSMEG_4537 | SrpI-like | 6e-99 | MSMEG_4538 | family 2A encapsulin nanocompartment cargo protein cysteine desulfurase | True |
 
-| termini | shell_detected | cargo_rank | cargo_score | top_score | top_gene_distance |
-| --- | --- | --- | --- | --- | --- |
-| c | True | 1 of 10 | 0.696 | 0.696 | -1 |
-| both | True | 1 of 10 | 0.697 | 0.697 | -1 |
+**2 of 3 top candidates at these shells are annotated
+by RefSeq as encapsulin cargo proteins.** cargofinder was not told these loci
+existed and this truth set has no entries for them, so that is the closest thing
+to a blind test in this report, on a very small number of cases. It is agreement
+with an annotation pipeline, not with an experiment.
+
+They are all found by PF19307, which became a default profile in v0.2 because
+Family 2 is the larger group in the Andreas & Giessen (2021) census (3,523
+systems against Family 1's 2,383). Note that although Pfam names PF19307 for
+Family 2A, it also detects Family 2B shells here: the *M. xanthus* pair is
+annotated Family 2B, and two adjacent shell genes in one operon is exactly the
+2B arrangement that paper describes.
 
 ## Cargo class recognition
 
@@ -81,10 +89,10 @@ encapsulin cargo; the rest are broad enzyme families scored lower.
 
 | measure | value |
 | --- | --- |
-| Candidates scanned | 80 |
-| Matched some cargo class | 12 |
-| ...that are known cargo | 7 |
-| ...that are not known cargo | 5 |
+| Candidates scanned | 118 |
+| Matched some cargo class | 14 |
+| ...that are known cargo | 8 |
+| ...that are not known cargo | 6 |
 | Matched by an *encapsulin-specific* family | 4 |
 | ...of those, not a listed cargo | 1 |
 
@@ -100,8 +108,10 @@ encapsulin cargo; the rest are broad enzyme families scored lower.
 | Pyrococcus furiosus DSM 3638 | PF1196 | rubrerythrin | PF02915 | False | 5 | 5 | False |
 | Rhodococcus jostii RHA1 | RHA1_ro02407 | dyp_peroxidase | PF20628 | False | 1 | -1 | True |
 | Rhodococcus erythropolis PR4 | RER_59910 | dyp_peroxidase | PF20628 | False | 1 | 1 | True |
+| Synechococcus elongatus PCC 7942 | Synpcc7942_B2661 | cysteine_desulfurase | PF00266 | False | 1 | -1 | True |
 | Rhodospirillum rubrum ATCC 11170 | Rru_A0973 | encapsulated_ferritin | PF22277 | True | 1 | -1 | True |
 | Mycolicibacterium smegmatis MC2 155 | MSMEG_5829 | dyp_peroxidase | PF20628 | False | 1 | -1 | True |
+| Mycolicibacterium smegmatis MC2 155 | MSMEG_4538 | cysteine_desulfurase | PF00266 | False | 1 | 1 | False |
 
 Every listed cargo that fell inside a window was given a biologically correct
 class: the ferritin-like cargos as encapsulated ferritin, the peroxidases as
@@ -191,8 +201,9 @@ encapsulin shell Rv0798c was not flagged in the same run.
 ## What is falsely flagged
 
 These are the top-ranked genes a user could waste effort on. Rank-1 genes that are not
-accepted cargo: 1, which includes the *P. furiosus* fragment. Shells
-detected beyond the listed ones: 0.
+accepted cargo: 4. That count includes the *P. furiosus* fragment and
+the top candidate at each additional shell listed above, whose true cargo is simply not
+in this truth set.
 
 Highest-scoring gene that is not listed cargo, per organism:
 
@@ -200,30 +211,35 @@ Highest-scoring gene that is not listed cargo, per organism:
 | --- | --- | --- | --- | --- | --- |
 | Thermotoga maritima MSB8 | TM0784 | hypothetical protein | 0.316 | -1 | IVAIAGKVVGTWAKGKLDVL |
 | Mycobacterium tuberculosis H37Rv | Rv0797 | insertion sequence element IS1547 transposase | 0.301 | -1 | HTQPAAACHRSYCSRSCLSG |
-| Myxococcus xanthus DK 1622 | MXAN_3555 | sigma-54-dependent transcriptional regulator | 0.448 | -1 | MKEFGLRDTTPDGQEDGPDE |
+| Myxococcus xanthus DK 1622 | MXAN_6247 | family 2 encapsulin nanocompartment cargo protein terpene cyclase | 0.451 | -1 | GLGTSAARITSLFANLRSGA |
 | Pyrococcus furiosus DSM 3638 | PF1192 | hypothetical protein | 0.744 | 1 | PEQVTELKGGFEEVQGANWN |
 | Rhodococcus jostii RHA1 | RHA1_ro02409 | conserved hypothetical protein | 0.305 | 1 | ALLFTMVTYTFGGLYLLFGG |
 | Rhodococcus erythropolis PR4 | RER_59920 | hypothetical protein | 0.395 | 2 | DGKIFEIPAGFDAGAQAATP |
+| Synechococcus elongatus PCC 7942 | Synpcc7942_B2663 | serine O-acetyltransferase EpsC | 0.449 | 1 | GSFISQAQIRSDNFESGGGI |
 | Rhodospirillum rubrum ATCC 11170 | unannotated |  | 0.404 | -2 | GENDRLTRSGPAGCHRILLP |
-| Mycolicibacterium smegmatis MC2 155 | MSMEG_5831 | phosphoribosylformylglycinamidine synthase subunit PurQ | 0.329 | 1 | GPSDDGLGLFYSALDAILSV |
+| Mycolicibacterium smegmatis MC2 155 | MSMEG_4538 | family 2A encapsulin nanocompartment cargo protein cysteine desulfurase | 0.734 | 1 | TFDEIDVFIDAVRRIAEGSV |
 
 These genes are unconfirmed, not proven non-cargo. Full top-3 lists are in
 `validation/false_flags.tsv`.
 
 ## Cluster recurrence across genomes
 
-All replicons pooled in one multi-genome run with default parameters. Clusters seen
-next to at least two shells:
+All replicons pooled in one multi-genome run with default parameters. Clusters
+containing at least two independent genes that each neighbour a shell. Counting
+genes rather than shells matters here: the tandem Family 2B shells of
+*M. xanthus* share their windows, so counting shells let a single gene appear to
+recur by itself.
 
-| shells | members |
+| genes | members |
 | --- | --- |
 | 4 | MSMEG_5829, RER_59910, RHA1_ro02407, Rv0799c |
 | 2 | MSMEG_5827, Rv0801 |
+| 2 | MSMEG_4538, Synpcc7942_B2661 |
 | 2 | MSMEG_5828, Rv0800 |
 
 Listed cargo in the pooled run:
 
-| organism | known_cargo | rank_in_shell | shells_in_cluster | score_total |
+| organism | known_cargo | rank_in_shell | genes_in_cluster | score_total |
 | --- | --- | --- | --- | --- |
 | Thermotoga maritima MSB8 | TM0786 | 1 | 1 | 0.798 |
 | Mycobacterium tuberculosis H37Rv | Rv0799c | 1 | 4 | 0.805 |
@@ -235,7 +251,7 @@ Listed cargo in the pooled run:
 | Pyrococcus furiosus DSM 3638 | PF1192 | 1 | 1 | 0.744 |
 | Rhodococcus jostii RHA1 | RHA1_ro02407 | 1 | 4 | 0.761 |
 | Rhodococcus erythropolis PR4 | RER_59910 | 1 | 4 | 0.86 |
-| Synechococcus elongatus PCC 7942 | Synpcc7942_B2661 | not in a window |  |  |
+| Synechococcus elongatus PCC 7942 | Synpcc7942_B2661 | 1 | 2 | 0.736 |
 | Rhodospirillum rubrum ATCC 11170 | Rru_A0973 | 1 | 1 | 0.851 |
 | Mycolicibacterium smegmatis MC2 155 | MSMEG_5829 | 1 | 4 | 0.828 |
 

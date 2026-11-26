@@ -3,16 +3,16 @@ cargofinder: Encapsulin Cargo Candidate Discovery Summary
 ===========================================================
 Genome ID:           NC_007595.1
 Total Genes:         55
-Shells Detected:     0
-Candidates Ranked:   0
-Distinct Clusters:   0
+Shells Detected:     1
+Candidates Ranked:   10
+Distinct Clusters:   10
 -----------------------------------------------------------
 Window Size:         +/- 5 genes
 Tail Length:         20 residues
 Max Operon Gap:      150 bp
 E-value Cutoff:      1e-05
-Clustering:          not run
-Profiles:            PF04454.19
+Clustering:          skipped (one shell: recurrence is not informative)
+Profiles:            PF04454.19, PF19307.7
 -----------------------------------------------------------
 cargofinder:         v0.1.0
 pyhmmer:             v0.12.3

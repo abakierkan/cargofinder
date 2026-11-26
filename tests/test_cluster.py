@@ -110,3 +110,54 @@ def test_cluster_candidates_with_real_mmseqs():
     assert res.get_cluster_size("c1") == 2
     assert res.get_shell_recurrence("c1") == 2
     assert res.get_shell_recurrence("c3") == 1
+
+
+def _cand(gene_id, shell_id, genome="g1"):
+    from cargofinder.io import Gene
+    from cargofinder.neighborhood import NeighborCandidate
+    from cargofinder.shells import ShellHit
+
+    gene = Gene(gene_id, "c1", 100, 700, 1, 0, "M" * 200)
+    shell_gene = Gene(shell_id, "c1", 900, 1500, 1, 1, "M" * 200)
+    hit = ShellHit(shell_id, "Linocin_M18", "PF04454", 1e-40, 1.0, 1e-40, 1, shell_gene)
+    return NeighborCandidate(
+        candidate_id=f"{shell_id}|{gene_id}",
+        shell_gene_id=shell_id,
+        contig_id="c1",
+        gene_distance=1,
+        abs_gene_distance=1,
+        strand_relative_distance=1,
+        bp_distance=50,
+        same_strand=True,
+        is_likely_operon=True,
+        candidate_gene=gene,
+        shell_hit=hit,
+        genome_id=genome,
+    )
+
+
+def test_tandem_shells_do_not_manufacture_recurrence():
+    """One gene next to two adjacent shells is one gene, not two occurrences.
+
+    Tandem shells are real: M. xanthus Family 2B operons encode two adjacent
+    shell proteins, so their windows overlap and share neighbours.
+    """
+    from cargofinder.cluster import _count_independent_genes
+
+    same_gene_two_shells = [_cand("geneA", "shell1"), _cand("geneA", "shell2")]
+    assert _count_independent_genes(same_gene_two_shells) == 1
+
+
+def test_distinct_genes_still_count_as_recurrence():
+    from cargofinder.cluster import _count_independent_genes
+
+    members = [_cand("geneA", "shell1"), _cand("geneB", "shell2")]
+    assert _count_independent_genes(members) == 2
+
+
+def test_same_gene_id_in_different_genomes_counts_twice():
+    """Gene ids are only unique within a genome."""
+    from cargofinder.cluster import _count_independent_genes
+
+    members = [_cand("gene_0001", "s1", "genomeA"), _cand("gene_0001", "s2", "genomeB")]
+    assert _count_independent_genes(members) == 2

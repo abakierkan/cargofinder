@@ -96,6 +96,24 @@ def get_mmseqs_version(custom_path: Optional[str | Path] = None) -> str:
     return res.stdout.strip() or "unknown"
 
 
+def _count_independent_genes(members: List[NeighborCandidate]) -> int:
+    """Count how many independent genes in a cluster sit next to a shell.
+
+    Recurrence is meant to measure "this family keeps turning up next to
+    encapsulin shells". Counting distinct `shell_gene_id` values overstates that
+    whenever two shells sit close enough for their windows to overlap, because
+    the same neighbouring gene is then a candidate for both and appears to recur
+    on its own. Tandem shells are real: the Family 2B operons of *M. xanthus*
+    encode two adjacent shell proteins, which Andreas & Giessen (2021) describe
+    as characteristic of those systems.
+
+    Counting distinct genes instead makes one gene count once however many
+    shells it neighbours. That is the conservative reading, and it means a
+    single tandem locus can no longer manufacture recurrence by itself.
+    """
+    return len({(m.genome_id, m.candidate_gene.gene_id) for m in members})
+
+
 def singleton_clusters(candidates: List[NeighborCandidate]) -> ClusterResult:
     """Put every candidate in its own cluster, when recurrence cannot be measured."""
     ids = sorted({c.candidate_id for c in candidates})
@@ -223,8 +241,7 @@ def cluster_candidates(
 
     cluster_sizes = {cid: len(mem) for cid, mem in cluster_members.items()}
     cluster_shell_counts = {
-        cid: len(set(m.shell_gene_id for m in mem))
-        for cid, mem in cluster_members.items()
+        cid: _count_independent_genes(mem) for cid, mem in cluster_members.items()
     }
     cluster_genome_counts = {
         cid: len(set(m.genome_id or m.contig_id for m in mem))

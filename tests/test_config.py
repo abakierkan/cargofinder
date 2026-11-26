@@ -63,10 +63,17 @@ def test_default_shell_profiles():
     assert "Linocin_M18" in p0.family
 
 
+def test_default_profiles_cover_families_1_and_2():
+    """Family 2 is the larger group, so scanning Family 1 alone misses most."""
+    accs = [p.pfam_id for p in DEFAULT_SHELL_PROFILES]
+    assert accs == ["PF04454", "PF19307"]
+
+
 def test_extended_shell_profiles():
-    assert "PF19307" in EXTENDED_SHELL_PROFILES
     assert "PF05065" in EXTENDED_SHELL_PROFILES
     assert "PF08967" in EXTENDED_SHELL_PROFILES
+    # PF19307 moved into the defaults and must not be duplicated here.
+    assert "PF19307" not in EXTENDED_SHELL_PROFILES
 
 
 def test_run_config_defaults():
@@ -92,9 +99,9 @@ def test_load_weights_rejects_unknown_key_and_bad_json():
 
 def test_select_profiles():
     assert select_profiles() == DEFAULT_SHELL_PROFILES
-    assert select_profiles(["PF19307"])[-1].pfam_id == "PF19307"
+    assert select_profiles(["PF05065"])[-1].pfam_id == "PF05065"
     # A curated accession keeps its curated description.
-    assert "SrpI" in select_profiles(["PF19307"])[-1].description
+    assert "phage capsid" in select_profiles(["PF05065"])[-1].description.lower()
 
 
 def test_select_profiles_accepts_any_valid_pfam_accession():

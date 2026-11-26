@@ -1,1 +1,2 @@
 gene_id	contig_id	start	end	strand	length_aa	profile_name	profile_acc	evalue	bitscore	prophage_marker_families	is_probable_prophage_locus
+NC_007595.1_0008	NC_007595.1	5275	6195	-1	306	SrpI-like	PF19307.7	1.0438334496125521e-107	349.9	0	False

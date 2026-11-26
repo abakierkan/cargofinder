@@ -10,8 +10,16 @@ Families and v0.1 scope:
   family. Well characterized in Thermotoga maritima, Mycobacterium tuberculosis,
   Myxococcus xanthus, and Rhodococcus jostii. Cargo enzymes include ferritin-like
   proteins (Flp) and dye-decolorizing peroxidases (DyP). Covered by default in v0.1.
-- Family 2A (PF19307, "Type 2A encapsulin shell protein SrpI-like", IPR045641):
-  fetchable with `fetch-profiles --extra PF19307`, not scanned by default.
+- Family 2 (PF19307, "Type 2A encapsulin shell protein SrpI-like", IPR045641):
+  scanned by default since v0.2. Family 2 is the largest group in the
+  Andreas & Giessen (2021) census (3,523 systems against Family 1's 2,383), so
+  scanning Family 1 alone missed most encapsulin systems. Despite being named
+  for Family 2A, this profile also detects Family 2B shells in practice: in
+  M. xanthus it finds MXAN_6248 and MXAN_6249 at E ~ 1e-136, which RefSeq
+  annotates as "family 2B encapsulin nanocompartment shell protein" and which
+  are the adjacent shell-gene pair that Andreas & Giessen describe as the
+  hallmark of 2B operons. Family 2 cargo is recruited by an N-terminal domain,
+  so TARGETING_MODE_BY_PROFILE routes these loci to N-terminal scoring.
 - PF05065 ("Phage capsid family", IPR054612): a general phage capsid family, so it
   is expected to hit prophages too. Fetchable, not scanned by default.
 - PF08967 ("Putative type 4B encapsulin shell protein", ENCP4): fetchable, not
@@ -48,17 +56,20 @@ DEFAULT_SHELL_PROFILES: List[ShellProfileDef] = [
             "(Pfam PF04454, InterPro IPR007544)"
         ),
         default_evalue=1e-5,
-    )
+    ),
+    ShellProfileDef(
+        family="Family 2 (SrpI-like)",
+        pfam_id="PF19307",
+        description=(
+            "Type 2A encapsulin shell protein SrpI-like (Pfam PF19307, "
+            "InterPro IPR045641); also detects Family 2B shells in practice"
+        ),
+        default_evalue=1e-5,
+    ),
 ]
 
 # Additional profiles that can be fetched on request
 EXTENDED_SHELL_PROFILES: Dict[str, ShellProfileDef] = {
-    "PF19307": ShellProfileDef(
-        family="Family 2A",
-        pfam_id="PF19307",
-        description="Type 2A encapsulin shell protein SrpI-like (InterPro IPR045641)",
-        default_evalue=1e-5,
-    ),
     "PF05065": ShellProfileDef(
         family="Phage capsid family",
         pfam_id="PF05065",

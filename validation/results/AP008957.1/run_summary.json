@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-11-26T18:30:59.385708+00:00",
+  "timestamp_utc": "2026-11-26T18:47:36.976675+00:00",
   "cargofinder_version": "0.1.0",
   "environment": {
     "python": "3.12.15",
@@ -30,6 +30,12 @@
       "name": "Linocin_M18",
       "acc": "PF04454.19",
       "sha256": "0df66d414cd7c6ddb323d1b6e676e3ac3ed4149de8b9276db4b01a7e8320b0e4"
+    },
+    {
+      "file": "PF19307.hmm",
+      "name": "SrpI-like",
+      "acc": "PF19307.7",
+      "sha256": "b66943a7d8576925140a594e4531d51ae052cfdb840cdbe7bdd5546a7c17357b"
     }
   ],
   "clustering": "skipped (one shell: recurrence is not informative)",

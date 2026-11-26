@@ -54,6 +54,21 @@
   encapsulation.
 
 ### Changed
+- **PF19307 (Family 2) is now a default shell profile** alongside PF04454.
+  Family 2 is the larger group in the Andreas & Giessen (2021) census (3,523
+  systems against Family 1's 2,383), so scanning Family 1 alone missed most
+  encapsulin systems. On the benchmark genomes it adds three further shells,
+  every one annotated by RefSeq as an encapsulin shell protein, with no false
+  positives. Despite being named for Family 2A it also detects Family 2B: the
+  M. xanthus MXAN_6248/MXAN_6249 pair is found at E ~ 1e-136. Benchmark recovery
+  rises from 6/11 to 7/11, since the S. elongatus cargo is now reached without
+  a special run.
+- Recurrence counts **independent genes** rather than distinct shells. Tandem
+  shells such as the Family 2B pair share their windows, so counting shells let
+  a single gene appear to recur on its own; the pooled run was reporting
+  clusters like "MXAN_6245, MXAN_6245". Each gene now counts once however many
+  shells it neighbours. This also surfaced a real cross-genome cluster, the two
+  Family 2A desulfurase cargos of M. smegmatis and S. elongatus.
 - Default weights, now: `w_distance` 0.25, `w_operon` 0.15, `w_targeting`
   0.15, `w_cargo_class` 0.30, `w_tail_features` 0.05, `w_recurrence` 0.10
   (v0.1 was 0.35/0.25/-/-/0.25/0.15). The invented composition heuristic was

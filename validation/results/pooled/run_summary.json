@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-11-26T18:32:47.716794+00:00",
+  "timestamp_utc": "2026-11-26T18:49:25.360641+00:00",
   "cargofinder_version": "0.1.0",
   "environment": {
     "python": "3.12.15",
@@ -30,15 +30,21 @@
       "name": "Linocin_M18",
       "acc": "PF04454.19",
       "sha256": "0df66d414cd7c6ddb323d1b6e676e3ac3ed4149de8b9276db4b01a7e8320b0e4"
+    },
+    {
+      "file": "PF19307.hmm",
+      "name": "SrpI-like",
+      "acc": "PF19307.7",
+      "sha256": "b66943a7d8576925140a594e4531d51ae052cfdb840cdbe7bdd5546a7c17357b"
     }
   ],
-  "clustering": "MMseqs2 across 8 shells",
+  "clustering": "MMseqs2 across 12 shells",
   "counts": {
     "genome_id": "NC_000853.1,NC_000962.3,NC_008095.1,NC_003413.1,CP000431.1,AP008957.1,NC_007595.1,NC_007643.1,NC_008596.1",
     "total_genes": 39292,
     "unmatched_gff_features": 0,
-    "shells_detected": 8,
-    "candidates_extracted": 80,
-    "distinct_clusters": 75
+    "shells_detected": 12,
+    "candidates_extracted": 118,
+    "distinct_clusters": 104
   }
 }
