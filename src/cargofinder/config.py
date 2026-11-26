@@ -73,6 +73,64 @@ EXTENDED_SHELL_PROFILES: Dict[str, ShellProfileDef] = {
 }
 
 
+# Phage marker profiles used to recognise prophage context around a shell hit.
+#
+# Why this exists: Andreas & Giessen (2021) Nat Commun 12:4748
+# (doi:10.1038/s41467-021-25071-y) report that their Family 1 and Family 2
+# encapsulin datasets "were significantly contaminated with bacteriophage capsid
+# proteins", and they removed hits whose genome neighborhoods contained
+# phage-associated Pfam domains. Encapsulin shells share the HK97 fold with phage
+# capsids (Pfam clan CL0373), so a sequence-only shell search cannot separate the
+# two; the surrounding genes can.
+#
+# That paper lists the Pfam domains it filtered on as
+# "PF0860, PF03354, PF04586, PF00589, PF05135". Four of those are used below.
+# "PF0860" is not a well-formed Pfam accession (they have five digits), and the
+# nearest valid accession, PF00860, is Xan_ur_permease, a xanthine/uracil
+# permease family with no phage association. We could not determine what was
+# intended, so it is deliberately omitted rather than guessed at. Flagged for
+# review: see docs/methods.md.
+#
+# Accessions and names were checked against the InterPro API on 2026-11-26
+# (https://www.ebi.ac.uk/interpro/api/entry/pfam/<accession>).
+PHAGE_MARKER_PROFILES: List[ShellProfileDef] = [
+    ShellProfileDef(
+        family="Phage marker",
+        pfam_id="PF03354",
+        description="TerL_ATPase: terminase large subunit, ATPase domain",
+        default_evalue=1e-5,
+    ),
+    ShellProfileDef(
+        family="Phage marker",
+        pfam_id="PF04586",
+        description="Peptidase_S78: caudovirus prohead serine protease",
+        default_evalue=1e-5,
+    ),
+    ShellProfileDef(
+        family="Phage marker",
+        pfam_id="PF00589",
+        description="Phage_integrase: phage integrase family",
+        default_evalue=1e-5,
+    ),
+    ShellProfileDef(
+        family="Phage marker",
+        pfam_id="PF05135",
+        description="Phage_connect_1: phage gp6-like head-tail connector protein",
+        default_evalue=1e-5,
+    ),
+]
+
+# Subdirectory of the profile directory that holds the phage marker profiles, so
+# that find_profile_files() does not pick them up as shell profiles.
+PHAGE_MARKER_SUBDIR = "phage_markers"
+
+# A shell locus is flagged as probable prophage context at or above this many
+# distinct phage marker families in its window. One marker is reported but not
+# flagged, because single phage-like genes are common in bacterial genomes
+# (e.g. a lone integrase next to an unrelated gene).
+PHAGE_MARKER_FLAG_THRESHOLD = 2
+
+
 def select_profiles(extra: Sequence[str] = ()) -> List[ShellProfileDef]:
     """Return the default profiles plus the requested extended profiles."""
     unknown = sorted(set(extra) - set(EXTENDED_SHELL_PROFILES))

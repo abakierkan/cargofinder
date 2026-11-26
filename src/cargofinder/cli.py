@@ -11,7 +11,7 @@ from typing import Optional
 import cargofinder
 from cargofinder.config import EXTENDED_SHELL_PROFILES, load_weights, select_profiles
 from cargofinder.pipeline import run_pipeline
-from cargofinder.profiles import fetch_default_profiles
+from cargofinder.profiles import fetch_default_profiles, fetch_phage_marker_profiles
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -127,6 +127,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Explicit path to MMseqs2 executable.",
     )
     run_parser.add_argument(
+        "--drop-prophage-loci",
+        action="store_true",
+        help=(
+            "Exclude shell loci whose neighborhood contains two or more distinct "
+            "phage marker families. Encapsulin shells share the HK97 fold with phage "
+            "capsids, so some hits are prophage capsids. Off by default: flagged loci "
+            "are reported either way, in shells.tsv and on every candidate row."
+        ),
+    )
+    run_parser.add_argument(
         "--no-plot",
         action="store_true",
         help="Skip generating neighborhood visual diagrams.",
@@ -201,6 +211,11 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"Successfully downloaded {len(files)} profile(s):")
             for f in files:
                 print(f"  -> {f}")
+            marker_files = fetch_phage_marker_profiles(args.out, timeout=args.timeout)
+            print(
+                f"Downloaded {len(marker_files)} phage marker profile(s) for "
+                f"prophage screening into '{args.out / 'phage_markers'}'."
+            )
             print(f"Manifest written to: {args.out / 'manifest.json'}")
             return 0
         except Exception as exc:
@@ -231,11 +246,28 @@ def main(argv: Optional[list[str]] = None) -> int:
                 termini=args.termini,
                 mmseqs_bin=args.mmseqs_bin,
                 generate_plots=not args.no_plot,
+                drop_prophage_loci=args.drop_prophage_loci,
             )
 
             print("\nScan completed:")
             print(f"  - Shells detected:       {len(res.shells)}")
             print(f"  - Candidates ranked:     {len(res.candidates)}")
+            flagged = sorted(
+                shell_id
+                for shell_id, ev in res.prophage.items()
+                if ev.is_probable_prophage
+            )
+            if flagged:
+                print(
+                    f"  - Probable prophage loci: {len(flagged)} ({', '.join(flagged)})"
+                )
+                if not args.drop_prophage_loci:
+                    print(
+                        "    These loci carry two or more distinct phage marker "
+                        "families nearby and may be phage capsids rather than "
+                        "encapsulins. Re-run with --drop-prophage-loci to exclude "
+                        "them."
+                    )
             print(f"  - Results directory:     {args.out}")
             if "tsv" in res.output_files:
                 print(f"  - Ranked TSV:            {res.output_files['tsv']}")

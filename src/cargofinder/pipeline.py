@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
@@ -23,6 +23,12 @@ from cargofinder.profiles import (
     describe_profiles,
     fetch_default_profiles,
     find_profile_files,
+)
+from cargofinder.prophage import (
+    ProphageEvidence,
+    assess_prophage_context,
+    collect_prophage_windows,
+    find_phage_marker_profiles,
 )
 from cargofinder.reporting import (
     export_candidates_json,
@@ -47,6 +53,7 @@ class RunResult:
     output_files: Dict[str, Path]
     summary: Dict[str, object]
     genomes: Optional[List[GenomeData]] = None
+    prophage: Dict[str, ProphageEvidence] = field(default_factory=dict)
 
 
 def resolve_profile_files(
@@ -68,6 +75,20 @@ def resolve_profile_files(
 
     logger.info("No local profiles found; downloading default Linocin_M18 profile...")
     return fetch_default_profiles(out_dir / "profiles", DEFAULT_SHELL_PROFILES)
+
+
+def _profile_root(profile_dir: Optional[Path | str], out_dir: Path) -> Path:
+    """Return the directory that holds this run's profiles.
+
+    Mirrors the search order of `resolve_profile_files` so that prophage markers
+    are looked for beside the shell profiles actually used.
+    """
+    if profile_dir is not None:
+        return Path(profile_dir)
+    local = Path("profiles")
+    if local.is_dir() and (list(local.glob("*.hmm")) + list(local.glob("*.hmm.gz"))):
+        return local
+    return out_dir / "profiles"
 
 
 def _load_genomes(
@@ -127,6 +148,8 @@ def run_pipeline(
     mmseqs_bin: Optional[Path | str] = None,
     generate_plots: bool = True,
     termini: str = "c",
+    drop_prophage_loci: bool = False,
+    prophage_window: int = 20,
 ) -> RunResult:
     """Execute the full cargofinder discovery pipeline.
 
@@ -258,6 +281,50 @@ def run_pipeline(
             )
         )
 
+    # 4b. Screen each shell locus for prophage context.
+    #
+    # Encapsulin shells share the HK97 fold with phage capsids, and
+    # Andreas & Giessen (2021) found their Family 1 and 2 datasets significantly
+    # contaminated with phage capsid proteins. See cargofinder.prophage.
+    marker_profiles = find_phage_marker_profiles(_profile_root(profile_dir, out_p))
+    prophage_windows = collect_prophage_windows(
+        genomes, shells_by_genome, prophage_window
+    )
+    prophage_evidence = assess_prophage_context(
+        prophage_windows,
+        marker_profiles,
+        evalue_cutoff=config.evalue_cutoff,
+    )
+    # Rewrite shells.tsv now that the prophage columns can be filled in.
+    output_files["shells"] = export_shells_tsv(
+        shells, out_p / "shells.tsv", prophage_evidence
+    )
+
+    if drop_prophage_loci:
+        flagged = {
+            shell_id
+            for shell_id, ev in prophage_evidence.items()
+            if ev.is_probable_prophage
+        }
+        if flagged:
+            before = len(neighbor_cands)
+            neighbor_cands = [
+                c for c in neighbor_cands if c.shell_gene_id not in flagged
+            ]
+            shells = [s for s in shells if s.gene_id not in flagged]
+            shells_by_genome = [
+                [s for s in group if s.gene_id not in flagged]
+                for group in shells_by_genome
+            ]
+            logger.warning(
+                "--drop-prophage-loci removed %d shell locus/loci and %d candidate(s)",
+                len(flagged),
+                before - len(neighbor_cands),
+            )
+            output_files["shells"] = export_shells_tsv(
+                shells, out_p / "shells.tsv", prophage_evidence
+            )
+
     # 5. Cluster Candidate Sequences
     if len(shells) >= 2:
         logger.info("Step 5: Clustering neighbor sequences via MMseqs2...")
@@ -293,6 +360,13 @@ def run_pipeline(
         motifs=motifs,
         termini=config.termini,
     )
+
+    for item in scored:
+        ev = prophage_evidence.get(item.shell_gene_id)
+        if ev is not None:
+            item.prophage_marker_count = ev.marker_count
+            item.prophage_marker_families = ev.distinct_family_count
+            item.is_probable_prophage_locus = ev.is_probable_prophage
 
     # 7. Export Reports
     logger.info("Step 7: Writing output reports and diagrams...")
@@ -331,4 +405,12 @@ def run_pipeline(
         len(scored),
         len(shells),
     )
-    return RunResult(genomes[0], shells, scored, output_files, summary, genomes)
+    return RunResult(
+        genomes[0],
+        shells,
+        scored,
+        output_files,
+        summary,
+        genomes,
+        prophage_evidence,
+    )

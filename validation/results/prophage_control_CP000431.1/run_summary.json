@@ -1,0 +1,50 @@
+{
+  "timestamp_utc": "2026-11-26T17:13:59.726345+00:00",
+  "cargofinder_version": "0.1.0",
+  "environment": {
+    "python": "3.12.15",
+    "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
+    "pyhmmer": "0.12.3",
+    "pyrodigal": "3.7.1",
+    "mmseqs2": "18.8cc5c"
+  },
+  "parameters": {
+    "window_size": 5,
+    "tail_length": 20,
+    "max_operon_gap_bp": 150,
+    "evalue_cutoff": 1e-05,
+    "min_shell_length_aa": 150,
+    "mmseqs_min_seq_id": 0.3,
+    "mmseqs_coverage": 0.8,
+    "termini": "c",
+    "scoring_weights": {
+      "w_distance": 0.3,
+      "w_operon": 0.2,
+      "w_tail_features": 0.15,
+      "w_recurrence": 0.15
+    }
+  },
+  "profiles": [
+    {
+      "file": "PF04454.hmm",
+      "name": "Linocin_M18",
+      "acc": "PF04454.20",
+      "sha256": "4b13c3e87d4779fd97e3320031626bdc3ae93683e3660faff7bad75bd5a6d0a2"
+    },
+    {
+      "file": "PF05065.hmm",
+      "name": "Phage_capsid",
+      "acc": "PF05065.21",
+      "sha256": "1bd241412d34fa42695ef2bd6cad024983063659b6ab914c20c4635440f2bd00"
+    }
+  ],
+  "clustering": "MMseqs2 across 2 shells",
+  "counts": {
+    "genome_id": "CP000431.1",
+    "total_genes": 7191,
+    "unmatched_gff_features": 0,
+    "shells_detected": 2,
+    "candidates_extracted": 20,
+    "distinct_clusters": 20
+  }
+}

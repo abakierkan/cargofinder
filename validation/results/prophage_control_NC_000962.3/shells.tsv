@@ -1,0 +1,4 @@
+gene_id	contig_id	start	end	strand	length_aa	profile_name	profile_acc	evalue	bitscore	prophage_marker_families	is_probable_prophage_locus
+NC_000962.3_0837	NC_000962.3	891472	892269	-1	265	Linocin_M18	PF04454.20	2.225496288271792e-99	329.34	0	False
+NC_000962.3_1645	NC_000962.3	1780643	1782064	-1	473	Phage_capsid	PF05065.21	3.1746619473748707e-51	171.93	1	False
+NC_000962.3_2761	NC_000962.3	2973795	2975234	-1	479	Phage_capsid	PF05065.21	3.2101281608427905e-56	188.32	2	True

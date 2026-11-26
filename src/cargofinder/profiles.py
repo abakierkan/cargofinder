@@ -12,7 +12,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from cargofinder.config import DEFAULT_SHELL_PROFILES, ShellProfileDef
+from cargofinder.config import (
+    DEFAULT_SHELL_PROFILES,
+    PHAGE_MARKER_PROFILES,
+    PHAGE_MARKER_SUBDIR,
+    ShellProfileDef,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -185,6 +190,46 @@ def fetch_default_profiles(
     manifest_file = out_path / "manifest.json"
     manifest_file.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
+    return downloaded
+
+
+def fetch_phage_marker_profiles(
+    out_dir: Path | str,
+    timeout: int = 30,
+) -> List[Path]:
+    """Download the phage marker profiles used for prophage screening.
+
+    They go into a `phage_markers` subdirectory so that `find_profile_files`
+    does not pick them up as shell profiles. See `cargofinder.prophage` for why
+    they are needed and `config.PHAGE_MARKER_PROFILES` for the accessions and
+    their provenance.
+
+    Returns
+    -------
+    list of Path
+        Paths to downloaded `.hmm` files.
+    """
+    sub = Path(out_dir) / PHAGE_MARKER_SUBDIR
+    sub.mkdir(parents=True, exist_ok=True)
+
+    downloaded: List[Path] = []
+    manifest: Dict[str, dict] = {}
+
+    for prof in PHAGE_MARKER_PROFILES:
+        hmm_file = fetch_pfam_profile(prof.pfam_id, sub, timeout=timeout)
+        downloaded.append(hmm_file)
+
+        meta_file = sub / f"{prof.pfam_id}.meta.json"
+        meta = (
+            json.loads(meta_file.read_text(encoding="utf-8"))
+            if meta_file.exists()
+            else {}
+        )
+        meta["family_label"] = prof.family
+        meta["family_description"] = prof.description
+        manifest[prof.pfam_id] = meta
+
+    (sub / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return downloaded
 
 

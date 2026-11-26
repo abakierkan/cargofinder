@@ -1,2 +1,2 @@
-gene_id	contig_id	start	end	strand	length_aa	profile_name	profile_acc	evalue	bitscore
-AP008957.1_6083	AP008957.1	6469849	6470643	-1	264	Linocin_M18	PF04454.19	1.748615654752103e-98	327.05
+gene_id	contig_id	start	end	strand	length_aa	profile_name	profile_acc	evalue	bitscore	prophage_marker_families	is_probable_prophage_locus
+AP008957.1_6083	AP008957.1	6469849	6470643	-1	264	Linocin_M18	PF04454.19	1.748615654752103e-98	327.05	0	False

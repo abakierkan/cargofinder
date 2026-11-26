@@ -24,17 +24,20 @@ from typing import Dict, List, Tuple
 
 import pandas as pd
 
-from cargofinder.config import select_profiles
+from cargofinder.config import PHAGE_MARKER_FLAG_THRESHOLD, select_profiles
 from cargofinder.pipeline import run_pipeline
-from cargofinder.profiles import fetch_default_profiles
+from cargofinder.profiles import fetch_default_profiles, fetch_phage_marker_profiles
 from cargofinder.scoring import ScoredCandidate
 
 logger = logging.getLogger("cargofinder.validation")
 
 HERE = Path(__file__).resolve().parent
 TOP_K = (1, 3, 5)
-# Weights of the two adjacency terms, used for the adjacency-only baseline
-W_DISTANCE, W_OPERON = 0.35, 0.25
+# Default prophage screening radius in genes (cargofinder.pipeline.run_pipeline)
+PROPHAGE_WINDOW = 20
+# Weights of the two adjacency terms, used for the adjacency-only baseline.
+# Kept in sync with cargofinder.config.ScoringWeights defaults.
+W_DISTANCE, W_OPERON = 0.30, 0.20
 
 
 @dataclass(frozen=True)
@@ -116,7 +119,17 @@ def adjacency_key(c: ScoredCandidate) -> float:
 
 
 def tail_key(c: ScoredCandidate) -> float:
+    """The invented composition heuristic alone (hydrophobic + Gly/Ser fraction)."""
     return c.score_tail_features
+
+
+def tp_consensus_key(c: ScoredCandidate) -> float:
+    """BLOSUM62 similarity to the published Family 1 TP consensus alone.
+
+    This is the comparison that matters for v0.2: the published signal against
+    the composition heuristic it was meant to replace.
+    """
+    return c.score_tp_consensus
 
 
 def fetch(url: str, out_path: Path) -> Path:
@@ -175,6 +188,10 @@ def evaluate_row(
         "adjacency_only_ties": "",
         "tail_only_rank": "",
         "tail_only_ties": "",
+        "tp_only_rank": "",
+        "tp_only_ties": "",
+        "prophage_marker_families": "",
+        "is_probable_prophage_locus": "",
         "citation": row["literature_reference"],
         "doi": row["doi"],
     }
@@ -198,6 +215,7 @@ def evaluate_row(
 
     adjacency_rank, adjacency_ties = relative_rank(target, in_shell, adjacency_key)
     tail_rank, tail_ties = relative_rank(target, in_shell, tail_key)
+    tp_rank, tp_ties = relative_rank(target, in_shell, tp_consensus_key)
     out.update(
         {
             "cargo_in_window": True,
@@ -208,6 +226,10 @@ def evaluate_row(
             "adjacency_only_ties": adjacency_ties,
             "tail_only_rank": tail_rank,
             "tail_only_ties": tail_ties,
+            "tp_only_rank": tp_rank,
+            "tp_only_ties": tp_ties,
+            "prophage_marker_families": target.prophage_marker_families,
+            "is_probable_prophage_locus": target.is_probable_prophage_locus,
         }
     )
     return out
@@ -278,10 +300,17 @@ def build_report(
     flags: pd.DataFrame,
     extra_shells: int,
     sensitivity: pd.DataFrame,
+    prophage: pd.DataFrame,
     pooled: pd.DataFrame,
     pooled_clusters: pd.DataFrame,
     manifest: pd.DataFrame,
 ) -> str:
+    linocin = prophage[prophage["profile"] == "Linocin_M18"]
+    capsid = prophage[prophage["profile"] == "Phage_capsid"]
+    linocin_total, capsid_total = len(linocin), len(capsid)
+    linocin_flagged = int(linocin["flagged"].sum()) if linocin_total else 0
+    capsid_flagged = int(capsid["flagged"].sum()) if capsid_total else 0
+
     primary = results[
         (results["evidence"] == "experimental")
         & (results["location_type"] != "natural_fusion")
@@ -303,8 +332,11 @@ def build_report(
                 "adjacency only, adjacent cargos": (
                     f"{baseline_hits(adjacent, 'adjacency_only', k)}/{len(adjacent)}"
                 ),
-                "tail only, adjacent cargos": (
+                "tail only (composition), adjacent cargos": (
                     f"{baseline_hits(adjacent, 'tail_only', k)}/{len(adjacent)}"
+                ),
+                "TP consensus only, adjacent cargos": (
+                    f"{baseline_hits(adjacent, 'tp_only', k)}/{len(adjacent)}"
                 ),
             }
         )
@@ -321,6 +353,8 @@ def build_report(
             "adjacency_only_ties",
             "tail_only_rank",
             "tail_only_ties",
+            "tp_only_rank",
+            "tp_only_ties",
         ]
     ]
 
@@ -385,6 +419,44 @@ Reported separately:
 
 {markdown_table(sensitivity)}
 
+## Prophage screening control
+
+Encapsulin shells share the HK97 fold with phage capsids (Pfam clan CL0373), and
+Andreas & Giessen (2021) report that their Family 1 and Family 2 datasets were
+significantly contaminated with phage capsid proteins. cargofinder screens the
+genes within +/-{PROPHAGE_WINDOW} genes of each shell for phage marker families
+(terminase, prohead protease, integrase, head-tail connector) and flags a locus
+at {PHAGE_MARKER_FLAG_THRESHOLD} or more distinct families.
+
+To test both directions on real genomes, every replicon was re-scanned with
+PF05065 (Phage_capsid) added, which deliberately pulls in phage capsids
+alongside the true encapsulins.
+
+| outcome | count |
+| --- | --- |
+| True encapsulin shells wrongly flagged | {linocin_flagged}/{linocin_total} |
+| Phage capsid hits (PF05065) correctly flagged | {capsid_flagged}/{capsid_total} |
+
+{markdown_table(prophage)}
+
+The screen does not misfire on any true encapsulin locus in this set, but it
+catches only {capsid_flagged} of {capsid_total} phage capsid hits. The misses
+carry one marker family or none within the window, so they fall below the
+threshold of {PHAGE_MARKER_FLAG_THRESHOLD}. Lowering it to 1 would flag more
+prophages at the cost of flagging loci that merely have a lone integrase
+nearby, which is common in bacterial genomes. Treat an unflagged locus as
+"not evidently prophage", never as "confirmed encapsulin".
+
+Worked positive control, independently checkable: in *M. tuberculosis* H37Rv the
+flagged PF05065 hit is **Rv2650c**, which NCBI annotates as "prophage protein".
+Its window contains Rv2646 (integrase), Rv2651c (prophage protease) and Rv2659c
+(prophage integrase). Rv2650c is a known gene of the **phiRv1** prophage-like
+element (Fan X, Abd Alla AA, Xie J (2016) *J Biomol Struct Dyn* 34:233-238,
+doi:10.1080/07391102.2015.1022602, which names Rv2650c, Rv2652c, Rv2658c and
+Rv2659c as phiRv1 genes; see also Bibb LA & Hatfull GF (2002) *Mol Microbiol*
+45:1515-1526, doi:10.1046/j.1365-2958.2002.03130.x). The true *M. tuberculosis*
+encapsulin shell Rv0798c was not flagged in the same run.
+
 ## What is falsely flagged
 
 These are the top-ranked genes a user could waste effort on. Rank-1 genes that are not
@@ -445,6 +517,12 @@ def run_validation(
 
     if not list(profiles_dir.glob("*.hmm")):
         fetch_default_profiles(profiles_dir, select_profiles())
+    # Phage marker profiles for prophage screening. Downloading them into both
+    # profile dirs means the Family 2A sensitivity run is screened too.
+    for d in (profiles_dir, extended_dir):
+        if not list((d / "phage_markers").glob("*.hmm")):
+            fetch_phage_marker_profiles(d)
+
     if not (extended_dir / "PF19307.hmm").exists():
         family2a = [p for p in select_profiles(["PF19307"]) if p.pfam_id == "PF19307"]
         fetch_default_profiles(extended_dir, family2a)
@@ -516,6 +594,44 @@ def run_validation(
             }
         )
 
+    # Prophage screening control.
+    #
+    # PF05065 (Phage_capsid) is a general phage capsid family in the same Pfam
+    # clan as the encapsulin shells (CL0373), so adding it deliberately pulls in
+    # phage capsids. That gives both halves of the control on real genomes:
+    # the Linocin_M18 hits are true encapsulins and must stay unflagged, while
+    # the Phage_capsid hits are the contamination the screen is meant to catch.
+    phage_dir = profiles_dir.parent / "profiles_phage_control"
+    if not (phage_dir / "PF05065.hmm").exists():
+        fetch_default_profiles(phage_dir, select_profiles(["PF05065"]))
+    if not list((phage_dir / "phage_markers").glob("*.hmm")):
+        fetch_phage_marker_profiles(phage_dir)
+
+    prophage_rows = []
+    for nuccore_id, group in known.groupby("nuccore_id", sort=False):
+        organism = group.iloc[0]["organism"]
+        res = run_pipeline(
+            data_dir / f"{nuccore_id}.fna",
+            out_dir=results_dir / f"prophage_control_{nuccore_id}",
+            profile_dir=phage_dir,
+            generate_plots=False,
+        )
+        for shell in res.shells:
+            ev = res.prophage[shell.gene_id]
+            prophage_rows.append(
+                {
+                    "organism": organism,
+                    "shell_gene": shell.gene_id,
+                    "profile": shell.profile_name,
+                    "shell_evalue": f"{shell.evalue:.0e}",
+                    "marker_families": ev.distinct_family_count,
+                    "flagged": ev.is_probable_prophage,
+                    "markers": ev.marker_summary,
+                }
+            )
+    prophage = pd.DataFrame(prophage_rows)
+    prophage.to_csv(HERE / "prophage_control.tsv", sep="\t", index=False)
+
     # Multi-genome run for recurrence across genomes
     pooled_res = run_pipeline(
         fastas,
@@ -560,6 +676,7 @@ def run_validation(
         flags,
         extra_shells,
         pd.DataFrame(sensitivity),
+        prophage,
         pd.DataFrame(pooled_rows),
         pooled_clusters,
         pd.DataFrame(manifest),

@@ -57,6 +57,12 @@ class ScoredCandidate:
     features: PeptideFeatures
     rank_in_shell: int = 0
     best_terminus: str = "c"
+    # Prophage context is evidence about the shell locus, not about this
+    # candidate being cargo, so it is reported but never added to score_total.
+    # Populated by the pipeline after scoring; see cargofinder.prophage.
+    prophage_marker_count: int = 0
+    prophage_marker_families: int = 0
+    is_probable_prophage_locus: bool = False
 
     def to_dict(self) -> Dict[str, object]:
         """Convert scored candidate to a flat dictionary for TSV/JSON reporting."""
@@ -91,6 +97,9 @@ class ScoredCandidate:
             "cluster_id": self.cluster_id,
             "cluster_size": self.cluster_size,
             "cluster_shell_count": self.cluster_shell_count,
+            "prophage_marker_count": self.prophage_marker_count,
+            "prophage_marker_families": self.prophage_marker_families,
+            "is_probable_prophage_locus": self.is_probable_prophage_locus,
         }
         # Add peptide features
         d.update(self.features.to_dict())

@@ -16,28 +16,28 @@ the run; do not edit them by hand.
 
 ## Cargo recovery
 
-| top k | cargofinder, all 9 cargos | cargofinder, 4 adjacent cargos | adjacency only, adjacent cargos | tail only, adjacent cargos |
-| --- | --- | --- | --- | --- |
-| 1 | 4/9 | 4/4 | 3/4 | 2/4 |
-| 3 | 4/9 | 4/4 | 4/4 | 4/4 |
-| 5 | 4/9 | 4/4 | 4/4 | 4/4 |
+| top k | cargofinder, all 9 cargos | cargofinder, 4 adjacent cargos | adjacency only, adjacent cargos | tail only (composition), adjacent cargos | TP consensus only, adjacent cargos |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 4/9 | 4/4 | 3/4 | 2/4 | 4/4 |
+| 3 | 4/9 | 4/4 | 4/4 | 4/4 | 4/4 |
+| 5 | 4/9 | 4/4 | 4/4 | 4/4 | 4/4 |
 
 The baselines count ties against the known cargo: a method that cannot separate two
 genes has not found the right one.
 
-| organism | known_cargo | location_type | evidence | outcome | score_total | adjacency_only_rank | adjacency_only_ties | tail_only_rank | tail_only_ties |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Thermotoga maritima MSB8 | TM0786 | adjacent_operon | experimental | rank 1 of 10 | 0.752 | 1 | 0 | 3 | 0 |
-| Mycobacterium tuberculosis H37Rv | Rv0799c | adjacent_operon | experimental | rank 1 of 10 | 0.797 | 1 | 0 | 1 | 0 |
-| Mycobacterium tuberculosis H37Rv | Rv3841 | distal_genomic | experimental | outside window |  |  |  |  |  |
-| Mycobacterium tuberculosis H37Rv | Rv3607c | distal_genomic | experimental | outside window |  |  |  |  |  |
-| Myxococcus xanthus DK 1622 | MXAN_3557 | adjacent_operon | experimental | rank 1 of 10 | 0.76 | 1 | 1 | 3 | 0 |
-| Myxococcus xanthus DK 1622 | MXAN_4464 | distal_genomic | experimental | outside window |  |  |  |  |  |
-| Myxococcus xanthus DK 1622 | MXAN_2410 | distal_genomic | experimental | outside window |  |  |  |  |  |
-| Pyrococcus furiosus DSM 3638 | PF1192 | natural_fusion | experimental | rank 1 of 10 | 0.725 | 1 | 0 | 8 | 0 |
-| Rhodococcus jostii RHA1 | RHA1_ro02407 | adjacent_operon | experimental | rank 1 of 10 | 0.783 | 1 | 0 | 1 | 0 |
-| Rhodococcus erythropolis PR4 | RER_59910 | adjacent_operon | homology_inferred | rank 1 of 10 | 0.782 | 1 | 0 | 1 | 0 |
-| Synechococcus elongatus PCC 7942 | Synpcc7942_B2661 | family_2a_operon | experimental | shell not detected |  |  |  |  |  |
+| organism | known_cargo | location_type | evidence | outcome | score_total | adjacency_only_rank | adjacency_only_ties | tail_only_rank | tail_only_ties | tp_only_rank | tp_only_ties |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Thermotoga maritima MSB8 | TM0786 | adjacent_operon | experimental | rank 1 of 10 | 0.674 | 1 | 0 | 3 | 0 | 1 | 0 |
+| Mycobacterium tuberculosis H37Rv | Rv0799c | adjacent_operon | experimental | rank 1 of 10 | 0.753 | 1 | 0 | 1 | 0 | 1 | 0 |
+| Mycobacterium tuberculosis H37Rv | Rv3841 | distal_genomic | experimental | outside window |  |  |  |  |  |  |  |
+| Mycobacterium tuberculosis H37Rv | Rv3607c | distal_genomic | experimental | outside window |  |  |  |  |  |  |  |
+| Myxococcus xanthus DK 1622 | MXAN_3557 | adjacent_operon | experimental | rank 1 of 10 | 0.682 | 1 | 1 | 3 | 0 | 1 | 0 |
+| Myxococcus xanthus DK 1622 | MXAN_4464 | distal_genomic | experimental | outside window |  |  |  |  |  |  |  |
+| Myxococcus xanthus DK 1622 | MXAN_2410 | distal_genomic | experimental | outside window |  |  |  |  |  |  |  |
+| Pyrococcus furiosus DSM 3638 | PF1192 | natural_fusion | experimental | rank 1 of 10 | 0.594 | 1 | 0 | 8 | 0 | 9 | 0 |
+| Rhodococcus jostii RHA1 | RHA1_ro02407 | adjacent_operon | experimental | rank 1 of 10 | 0.69 | 1 | 0 | 1 | 0 | 1 | 0 |
+| Rhodococcus erythropolis PR4 | RER_59910 | adjacent_operon | homology_inferred | rank 1 of 10 | 0.822 | 1 | 0 | 1 | 0 | 1 | 0 |
+| Synechococcus elongatus PCC 7942 | Synpcc7942_B2661 | family_2a_operon | experimental | shell not detected |  |  |  |  |  |  |  |
 
 Reported separately:
 
@@ -59,8 +59,62 @@ Reported separately:
 
 | termini | shell_detected | cargo_rank | cargo_score | top_score | top_gene_distance |
 | --- | --- | --- | --- | --- | --- |
-| c | True | 3 of 10 | 0.609 | 0.775 | 1 |
-| both | True | 3 of 10 | 0.616 | 0.775 | 1 |
+| c | True | 3 of 10 | 0.541 | 0.652 | 1 |
+| both | True | 3 of 10 | 0.545 | 0.652 | 1 |
+
+## Prophage screening control
+
+Encapsulin shells share the HK97 fold with phage capsids (Pfam clan CL0373), and
+Andreas & Giessen (2021) report that their Family 1 and Family 2 datasets were
+significantly contaminated with phage capsid proteins. cargofinder screens the
+genes within +/-20 genes of each shell for phage marker families
+(terminase, prohead protease, integrase, head-tail connector) and flags a locus
+at 2 or more distinct families.
+
+To test both directions on real genomes, every replicon was re-scanned with
+PF05065 (Phage_capsid) added, which deliberately pulls in phage capsids
+alongside the true encapsulins.
+
+| outcome | count |
+| --- | --- |
+| True encapsulin shells wrongly flagged | 0/6 |
+| Phage capsid hits (PF05065) correctly flagged | 2/9 |
+
+| organism | shell_gene | profile | shell_evalue | marker_families | flagged | markers |
+| --- | --- | --- | --- | --- | --- | --- |
+| Thermotoga maritima MSB8 | NC_000853.1_0780 | Linocin_M18 | 1e-92 | 0 | False |  |
+| Mycobacterium tuberculosis H37Rv | NC_000962.3_0837 | Linocin_M18 | 2e-99 | 0 | False |  |
+| Mycobacterium tuberculosis H37Rv | NC_000962.3_1645 | Phage_capsid | 3e-51 | 1 | False | NC_000962.3_1646:Peptidase_S78 |
+| Mycobacterium tuberculosis H37Rv | NC_000962.3_2761 | Phage_capsid | 3e-56 | 2 | True | NC_000962.3_2757:Phage_integrase;NC_000962.3_2762:Peptidase_S78;NC_000962.3_2770:Phage_integrase |
+| Myxococcus xanthus DK 1622 | NC_008095.1_1183 | Phage_capsid | 4e-33 | 2 | True | NC_008095.1_1167:Phage_integrase;NC_008095.1_1182:Peptidase_S78 |
+| Myxococcus xanthus DK 1622 | NC_008095.1_1829 | Phage_capsid | 6e-10 | 1 | False | NC_008095.1_1842:Phage_integrase |
+| Myxococcus xanthus DK 1622 | NC_008095.1_3484 | Linocin_M18 | 3e-66 | 0 | False |  |
+| Pyrococcus furiosus DSM 3638 | NC_003413.1_1214 | Linocin_M18 | 2e-19 | 0 | False |  |
+| Rhodococcus jostii RHA1 | CP000431.1_2390 | Linocin_M18 | 3e-91 | 0 | False |  |
+| Rhodococcus jostii RHA1 | CP000431.1_6479 | Phage_capsid | 3e-23 | 0 | False |  |
+| Rhodococcus erythropolis PR4 | AP008957.1_1921 | Phage_capsid | 4e-22 | 0 | False |  |
+| Rhodococcus erythropolis PR4 | AP008957.1_2558 | Phage_capsid | 2e-50 | 1 | False | AP008957.1_2557:Peptidase_S78 |
+| Rhodococcus erythropolis PR4 | AP008957.1_4050 | Phage_capsid | 2e-42 | 1 | False | AP008957.1_4049:Peptidase_S78 |
+| Rhodococcus erythropolis PR4 | AP008957.1_4587 | Phage_capsid | 3e-25 | 1 | False | AP008957.1_4595:Phage_integrase |
+| Rhodococcus erythropolis PR4 | AP008957.1_6083 | Linocin_M18 | 9e-100 | 0 | False |  |
+
+The screen does not misfire on any true encapsulin locus in this set, but it
+catches only 2 of 9 phage capsid hits. The misses
+carry one marker family or none within the window, so they fall below the
+threshold of 2. Lowering it to 1 would flag more
+prophages at the cost of flagging loci that merely have a lone integrase
+nearby, which is common in bacterial genomes. Treat an unflagged locus as
+"not evidently prophage", never as "confirmed encapsulin".
+
+Worked positive control, independently checkable: in *M. tuberculosis* H37Rv the
+flagged PF05065 hit is **Rv2650c**, which NCBI annotates as "prophage protein".
+Its window contains Rv2646 (integrase), Rv2651c (prophage protease) and Rv2659c
+(prophage integrase). Rv2650c is a known gene of the **phiRv1** prophage-like
+element (Fan X, Abd Alla AA, Xie J (2016) *J Biomol Struct Dyn* 34:233-238,
+doi:10.1080/07391102.2015.1022602, which names Rv2650c, Rv2652c, Rv2658c and
+Rv2659c as phiRv1 genes; see also Bibb LA & Hatfull GF (2002) *Mol Microbiol*
+45:1515-1526, doi:10.1046/j.1365-2958.2002.03130.x). The true *M. tuberculosis*
+encapsulin shell Rv0798c was not flagged in the same run.
 
 ## What is falsely flagged
 
@@ -72,12 +126,12 @@ Highest-scoring gene that is not listed cargo, per organism:
 
 | organism | locus | product | score_total | gene_distance | c_term_seq |
 | --- | --- | --- | --- | --- | --- |
-| Thermotoga maritima MSB8 | TM0784 | hypothetical protein | 0.513 | -1 | IVAIAGKVVGTWAKGKLDVL |
-| Mycobacterium tuberculosis H37Rv | Rv0797 | insertion sequence element IS1547 transposase | 0.489 | -1 | HTQPAAACHRSYCSRSCLSG |
-| Myxococcus xanthus DK 1622 | MXAN_3555 | sigma-54-dependent transcriptional regulator | 0.71 | -1 | MKEFGLRDTTPDGQEDGPDE |
-| Pyrococcus furiosus DSM 3638 | PF1192 | hypothetical protein | 0.725 | 1 | PEQVTELKGGFEEVQGANWN |
-| Rhodococcus jostii RHA1 | RHA1_ro02409 | conserved hypothetical protein | 0.52 | 1 | ALLFTMVTYTFGGLYLLFGG |
-| Rhodococcus erythropolis PR4 | RER_59920 | hypothetical protein | 0.685 | 2 | DGKIFEIPAGFDAGAQAATP |
+| Thermotoga maritima MSB8 | TM0784 | hypothetical protein | 0.436 | -1 | IVAIAGKVVGTWAKGKLDVL |
+| Mycobacterium tuberculosis H37Rv | Rv0797 | insertion sequence element IS1547 transposase | 0.408 | -1 | HTQPAAACHRSYCSRSCLSG |
+| Myxococcus xanthus DK 1622 | MXAN_3555 | sigma-54-dependent transcriptional regulator | 0.594 | -1 | MKEFGLRDTTPDGQEDGPDE |
+| Pyrococcus furiosus DSM 3638 | PF1192 | hypothetical protein | 0.594 | 1 | PEQVTELKGGFEEVQGANWN |
+| Rhodococcus jostii RHA1 | RHA1_ro02409 | conserved hypothetical protein | 0.423 | 1 | ALLFTMVTYTFGGLYLLFGG |
+| Rhodococcus erythropolis PR4 | RER_59920 | hypothetical protein | 0.545 | 2 | DGKIFEIPAGFDAGAQAATP |
 
 These genes are unconfirmed, not proven non-cargo. Full top-3 lists are in
 `validation/false_flags.tsv`.
@@ -95,16 +149,16 @@ Listed cargo in the pooled run:
 
 | organism | known_cargo | rank_in_shell | shells_in_cluster | score_total |
 | --- | --- | --- | --- | --- |
-| Thermotoga maritima MSB8 | TM0786 | 1 | 1 | 0.752 |
-| Mycobacterium tuberculosis H37Rv | Rv0799c | 1 | 3 | 0.917 |
+| Thermotoga maritima MSB8 | TM0786 | 1 | 1 | 0.674 |
+| Mycobacterium tuberculosis H37Rv | Rv0799c | 1 | 3 | 0.873 |
 | Mycobacterium tuberculosis H37Rv | Rv3841 | not in a window |  |  |
 | Mycobacterium tuberculosis H37Rv | Rv3607c | not in a window |  |  |
-| Myxococcus xanthus DK 1622 | MXAN_3557 | 1 | 1 | 0.76 |
+| Myxococcus xanthus DK 1622 | MXAN_3557 | 1 | 1 | 0.682 |
 | Myxococcus xanthus DK 1622 | MXAN_4464 | not in a window |  |  |
 | Myxococcus xanthus DK 1622 | MXAN_2410 | not in a window |  |  |
-| Pyrococcus furiosus DSM 3638 | PF1192 | 1 | 1 | 0.725 |
-| Rhodococcus jostii RHA1 | RHA1_ro02407 | 1 | 3 | 0.903 |
-| Rhodococcus erythropolis PR4 | RER_59910 | 1 | 3 | 0.902 |
+| Pyrococcus furiosus DSM 3638 | PF1192 | 1 | 1 | 0.594 |
+| Rhodococcus jostii RHA1 | RHA1_ro02407 | 1 | 3 | 0.81 |
+| Rhodococcus erythropolis PR4 | RER_59910 | 1 | 3 | 0.942 |
 | Synechococcus elongatus PCC 7942 | Synpcc7942_B2661 | not in a window |  |  |
 
 Clustering at 30% identity and 80% coverage groups only sequences that stay similar

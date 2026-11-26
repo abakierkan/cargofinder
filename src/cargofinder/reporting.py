@@ -8,7 +8,7 @@ import platform
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pandas as pd
 import pyhmmer
@@ -19,6 +19,9 @@ from cargofinder.config import RunConfig
 from cargofinder.io import GenomeData
 from cargofinder.scoring import ScoredCandidate
 from cargofinder.shells import ShellHit
+
+if TYPE_CHECKING:
+    from cargofinder.prophage import ProphageEvidence
 
 logger = logging.getLogger(__name__)
 
@@ -75,8 +78,16 @@ def export_candidates_json(
     return out_file
 
 
-def export_shells_tsv(shells: List[ShellHit], out_path: Path | str) -> Path:
-    """Export the detected shell genes and the evidence for each."""
+def export_shells_tsv(
+    shells: List[ShellHit],
+    out_path: Path | str,
+    prophage: Optional[Dict[str, "ProphageEvidence"]] = None,
+) -> Path:
+    """Export the detected shell genes and the evidence for each.
+
+    `prophage` adds the prophage-context columns; without it they read 0/False,
+    which means "not screened", not "screened and clean".
+    """
     out_file = Path(out_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)
     columns = [
@@ -90,6 +101,8 @@ def export_shells_tsv(shells: List[ShellHit], out_path: Path | str) -> Path:
         "profile_acc",
         "evalue",
         "bitscore",
+        "prophage_marker_families",
+        "is_probable_prophage_locus",
     ]
     rows = [
         {
@@ -103,6 +116,16 @@ def export_shells_tsv(shells: List[ShellHit], out_path: Path | str) -> Path:
             "profile_acc": s.profile_acc,
             "evalue": s.evalue,
             "bitscore": round(s.bitscore, 2),
+            "prophage_marker_families": (
+                prophage[s.gene_id].distinct_family_count
+                if prophage and s.gene_id in prophage
+                else 0
+            ),
+            "is_probable_prophage_locus": (
+                prophage[s.gene_id].is_probable_prophage
+                if prophage and s.gene_id in prophage
+                else False
+            ),
         }
         for s in shells
     ]
